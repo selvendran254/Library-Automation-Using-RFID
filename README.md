@@ -1,19 +1,23 @@
-# Library RFID Automation System
+# Library Automation Using RFID
+
+Complete library RFID system — **Flask web application** (PostgreSQL) plus **Arduino hardware** prototype.
+
+## Web Application (Flask)
 
 Flask + PostgreSQL library management with RFID issue/return, member portal, SMS alerts, and admin dashboard.
 
-## Features
+### Features
 
 - **Staff admin:** books, members, issue/return, fines, reservations, reports, damage reports, settings
 - **RFID:** HID keyboard wedge or USB serial reader
 - **Member portal:** dashboard, history, chat with admin, book requests, reservations, renewal requests
-- **Security:** staff login, CSRF protection, role-based sessions
-- **SMS:** simulated (default), Twilio, or MSG91
+- **Security:** staff username/password login, CSRF protection, role-based sessions
+- **SMS:** Fast2SMS, MSG91, Twilio, or simulated mode
 - **Email:** optional SMTP notifications
 
-## Quick Start
+### Quick Start
 
-### 1. PostgreSQL
+#### 1. PostgreSQL
 
 ```bash
 docker run -d --name library-rfid-pg \
@@ -22,7 +26,7 @@ docker run -d --name library-rfid-pg \
   -p 5433:5432 postgres:16
 ```
 
-### 2. Python setup
+#### 2. Python setup
 
 ```bash
 cd library_rfid
@@ -33,7 +37,7 @@ cp .env.example .env
 # Edit .env — set DATABASE_URL and SECRET_KEY
 ```
 
-### 3. Run (development)
+#### 3. Run (development)
 
 ```bash
 export DATABASE_URL=postgresql://postgres:postgres@localhost:5433/library_rfid
@@ -44,9 +48,9 @@ Open: http://127.0.0.1:5000
 
 **Staff login:** `admin` / `admin123` (change immediately)
 
-**Member portal:** http://127.0.0.1:5000/portal/ — RFID card login or magic link from admin
+**Member portal:** http://127.0.0.1:5000/portal/
 
-## Production
+### Production
 
 ```bash
 export FLASK_DEBUG=0
@@ -54,25 +58,13 @@ export SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))")
 gunicorn -w 4 -b 0.0.0.0:8000 wsgi:application
 ```
 
-Use nginx/Caddy for HTTPS in front of Gunicorn.
-
-## Database Migrations
-
-```bash
-flask db init          # first time only
-flask db migrate -m "description"
-flask db upgrade
-```
-
-Legacy databases also auto-upgrade via `upgrade_database()` on startup.
-
-## Tests
+### Tests
 
 ```bash
 pytest tests/ -v
 ```
 
-## Project Structure
+### Project Structure
 
 ```
 library_rfid/
@@ -86,20 +78,33 @@ library_rfid/
 └── tests/              # pytest suite
 ```
 
-## Environment Variables
+See `.env.example` for environment variables.
 
-See `.env.example` for full list.
+---
 
-| Variable | Description |
-|----------|-------------|
-| `SECRET_KEY` | Flask session secret (required in production) |
-| `DATABASE_URL` | PostgreSQL connection string |
-| `SMS_PROVIDER` | `simulated`, `twilio`, or `msg91` |
-| `DEFAULT_ADMIN_PASSWORD` | Initial admin password (first run) |
+## Arduino Hardware Prototype
 
-## Default Sample Data
+Automates book issue/return using RFID tags and an MFRC522 RFID reader with Arduino.
 
-On first run with empty DB: 10 books, 5 members, sample transactions and notices are seeded.
+### Features
+
+- Scan RFID tag of books and users
+- Real-time serial logging of issue/return events
+- Store book/user details in CSV or external DB
+- LCD-based status display
+- Buzzer alert for invalid tag scan
+
+### Hardware
+
+- Arduino Uno / Nano
+- MFRC522 RFID Module
+- LCD 16x2 (I2C recommended)
+- Buzzer + LED indicators
+- RFID tags/cards
+
+See `library_rfid.ino`, `BUILD.md`, and `wiring_diagram.png` in this repo.
+
+---
 
 ## License
 
