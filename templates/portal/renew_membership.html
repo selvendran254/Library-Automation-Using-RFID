@@ -1,0 +1,30 @@
+{% extends "portal/base.html" %}
+{% block title %}Renew Membership{% endblock %}
+{% block content %}
+<div class="portal-form-page">
+    <a href="{{ url_for('member_portal.dashboard') }}" class="portal-messages-back"><i class="bi bi-arrow-left"></i> Dashboard</a>
+    <h1><i class="bi bi-arrow-repeat"></i> {{ t('renew_membership') }}</h1>
+    <div class="portal-messages-card mt-3">
+        {% if pending %}
+        <div class="alert alert-info">You have a pending renewal request. Admin will review soon.</div>
+        {% else %}
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+                <label class="form-label">Renew for</label>
+                <select name="months" class="form-select">
+                    <option value="6">6 months</option>
+                    <option value="12" selected>12 months</option>
+                    <option value="24">24 months</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Message to library (optional)</label>
+                <textarea name="notes" class="form-control" rows="3" maxlength="300"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Send Renewal Request</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

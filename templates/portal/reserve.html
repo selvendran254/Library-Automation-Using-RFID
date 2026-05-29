@@ -1,0 +1,27 @@
+{% extends "portal/base.html" %}
+{% block title %}Reserve a Book{% endblock %}
+{% block content %}
+<div class="portal-form-page">
+    <a href="{{ url_for('member_portal.dashboard') }}" class="portal-messages-back"><i class="bi bi-arrow-left"></i> Dashboard</a>
+    <h1><i class="bi bi-bookmark-star"></i> {{ t('reserve_book') }}</h1>
+    <div class="portal-messages-card mt-3">
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+                <label class="form-label">Select Book *</label>
+                <select name="book_id" class="form-select" required>
+                    <option value="">— Choose available book —</option>
+                    {% for book in books %}
+                    <option value="{{ book.id }}">{{ book.title }} — {{ book.author }} ({{ book.available_qty }} left)</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Notes</label>
+                <input type="text" name="notes" class="form-control" maxlength="255" placeholder="Optional">
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Create Reservation</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

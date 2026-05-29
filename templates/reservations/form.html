@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}New Reservation{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-7"><div class="card">
+<div class="card-header"><h4 class="mb-0">Create Reservation</h4></div>
+<div class="card-body"><form method="POST">
+    <div class="mb-3"><label class="form-label">Book</label><select name="book_id" class="form-select" required>{% for b in books %}<option value="{{ b.id }}">{{ b.title }} ({{ b.available_qty }}/{{ b.total_qty }} avail)</option>{% endfor %}</select></div>
+    <div class="mb-3"><label class="form-label">Member</label><select name="member_id" class="form-select" required>{% for m in members %}<option value="{{ m.id }}">{{ m.name }} — {{ m.rfid_card }}</option>{% endfor %}</select></div>
+    <div class="mb-3"><label class="form-label">Notes</label><input type="text" class="form-control" name="notes" placeholder="Optional"></div>
+    <button type="submit" class="btn btn-primary">Create Reservation</button>
+    <a href="{{ url_for('reservations.list_reservations') }}" class="btn btn-secondary">Cancel</a>
+</form></div></div></div></div>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}SMS Log{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between mb-4">
+    <h2><i class="bi bi-chat-dots me-2"></i>SMS Log</h2>
+    <a href="{{ url_for('notifications.due_alerts') }}" class="btn btn-primary btn-sm"><i class="bi bi-bell"></i> Alerts</a>
+</div>
+
+<div class="card mb-3"><div class="card-body py-2"><form method="GET" class="row g-2">
+    <div class="col-md-6"><select name="type" class="form-select form-select-sm">
+        <option value="">All Types</option>
+        <option value="ISSUE" {% if type_filter=='ISSUE' %}selected{% endif %}>Issue</option>
+        <option value="RETURN" {% if type_filter=='RETURN' %}selected{% endif %}>Return</option>
+        <option value="RETURN_FINE" {% if type_filter=='RETURN_FINE' %}selected{% endif %}>Return + Fine</option>
+        <option value="DUE_SOON" {% if type_filter=='DUE_SOON' %}selected{% endif %}>Due Soon</option>
+        <option value="OVERDUE" {% if type_filter=='OVERDUE' %}selected{% endif %}>Overdue</option>
+        <option value="RENEW" {% if type_filter=='RENEW' %}selected{% endif %}>Renew</option>
+    </select></div>
+    <div class="col-md-6"><button class="btn btn-primary btn-sm w-100">Filter</button></div>
+</form></div></div>
+
+<div class="card"><div class="card-body"><table class="table table-striped datatable">
+<thead><tr><th>Sent</th><th>Member</th><th>Phone</th><th>Type</th><th>Message</th><th>Status</th></tr></thead>
+<tbody>{% for sms in logs %}<tr>
+    <td>{{ sms.sent_at.strftime('%d-%m-%Y %H:%M') }}</td>
+    <td>{{ sms.member.name }}</td>
+    <td><code>{{ sms.phone }}</code></td>
+    <td><span class="badge {% if sms.message_type=='OVERDUE' %}bg-danger{% elif sms.message_type=='RETURN' %}bg-success{% elif sms.message_type=='DUE_SOON' %}bg-warning text-dark{% else %}bg-info{% endif %}">{{ sms.message_type }}</span></td>
+    <td class="small">{{ sms.message }}</td>
+    <td><span class="badge bg-success">{{ sms.status }}</span></td>
+</tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}
+{% block scripts %}<script>$(document).ready(function(){ $('.datatable').DataTable({ order: [[0,'desc']] }); });</script>{% endblock %}

@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Members{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1"><i class="bi bi-people me-2"></i>Members</h2>
+        <p class="text-muted mb-0 small">Each member's currently issued books are shown below</p>
+    </div>
+    <div>
+        <a href="{{ url_for('admin.export_members') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download"></i> Export</a>
+        <a href="{{ url_for('members.add_member') }}" class="btn btn-primary btn-sm"><i class="bi bi-person-plus"></i> Add</a>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="GET" class="row g-2">
+            <div class="col-md-4">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Status</option>
+                    <option value="Active" {% if status_filter=='Active' %}selected{% endif %}>Active</option>
+                    <option value="Suspended" {% if status_filter=='Suspended' %}selected{% endif %}>Suspended</option>
+                    <option value="Inactive" {% if status_filter=='Inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <select name="type" class="form-select form-select-sm">
+                    <option value="">All Types</option>
+                    <option value="Standard" {% if type_filter=='Standard' %}selected{% endif %}>Standard</option>
+                    <option value="Premium" {% if type_filter=='Premium' %}selected{% endif %}>Premium</option>
+                    <option value="Student" {% if type_filter=='Student' %}selected{% endif %}>Student</option>
+                </select>
+            </div>
+            <div class="col-md-4"><button class="btn btn-primary btn-sm w-100">Filter</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <table class="table table-hover datatable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>RFID</th>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Books Taken Now</th>
+                    <th>Count</th>
+                    <th>Fine</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in members %}
+                <tr>
+                    <td>{{ m.id }}</td>
+                    <td><code>{{ m.rfid_card }}</code></td>
+                    <td><a href="{{ url_for('members.member_detail', member_id=m.id) }}">{{ m.name }}</a></td>
+                    <td>{{ m.membership_type }}</td>
+                    <td>
+                        {% if m.status=='Active' %}<span class="badge bg-success">Active</span>
+                        {% elif m.status=='Suspended' %}<span class="badge bg-danger">Suspended</span>
+                        {% else %}<span class="badge bg-secondary">{{ m.status }}</span>{% endif %}
+                        {% if m.expiry_date and m.is_expired %}<span class="badge bg-warning text-dark">Expired</span>{% endif %}
+                    </td>
+                    <td class="member-books-cell">
+                        {% if m.current_books %}
+                            {% for t in m.current_books %}
+                            <div class="member-book-chip {% if t.is_overdue %}overdue{% endif %}">
+                                <i class="bi bi-book"></i>
+                                <span>{{ t.book.title }}</span>
+                                <small class="text-muted">due {{ t.due_date.strftime('%d-%m') }}</small>
+                                {% if t.is_overdue %}<span class="badge bg-danger ms-1">Overdue</span>{% endif %}
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-muted">No books taken</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge {% if m.active_books_count > 0 %}bg-primary{% else %}bg-secondary{% endif %}">
+                            {{ m.active_books_count }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if m.pending_fine > 0 %}<span class="text-danger fw-semibold">₹{{ "%.0f"|format(m.pending_fine) }}</span>
+                        {% else %}<span class="text-muted">₹0</span>{% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('members.member_detail', member_id=m.id) }}" class="btn btn-sm btn-outline-info" title="View"><i class="bi bi-eye"></i></a>
+                        <a href="{{ url_for('members.edit_member', member_id=m.id) }}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function () {
+    $('.datatable').DataTable({
+        order: [[2, 'asc']],
+        columnDefs: [{ orderable: false, targets: [5, 8] }],
+        pageLength: 25,
+    });
+});
+</script>
+{% endblock %}

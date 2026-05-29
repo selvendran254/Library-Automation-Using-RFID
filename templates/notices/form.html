@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if notice else 'Post' }} Notice{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-7"><div class="card">
+<div class="card-header"><h4 class="mb-0">{{ 'Edit' if notice else 'Post' }} Notice</h4></div>
+<div class="card-body"><form method="POST">
+    <div class="mb-3"><label class="form-label">Title</label><input type="text" class="form-control" name="title" value="{{ notice.title if notice else '' }}" required></div>
+    <div class="mb-3"><label class="form-label">Message</label><textarea class="form-control" name="message" rows="4" required>{{ notice.message if notice else '' }}</textarea></div>
+    <div class="row">
+        <div class="col-md-6 mb-3"><label class="form-label">Priority</label>
+            {% set pri = notice.priority if notice else 'Normal' %}
+            <select class="form-select" name="priority"><option value="High" {% if pri=='High' %}selected{% endif %}>High</option><option value="Normal" {% if pri=='Normal' %}selected{% endif %}>Normal</option><option value="Low" {% if pri=='Low' %}selected{% endif %}>Low</option></select></div>
+        <div class="col-md-6 mb-3 d-flex align-items-end"><div class="form-check"><input class="form-check-input" type="checkbox" name="is_active" id="is_active" {% if not notice or notice.is_active %}checked{% endif %}><label class="form-check-label" for="is_active">Active (show on dashboard)</label></div></div>
+    </div>
+    <button type="submit" class="btn btn-primary">Save Notice</button>
+    <a href="{{ url_for('notices.list_notices') }}" class="btn btn-secondary">Cancel</a>
+</form></div></div></div></div>
+{% endblock %}

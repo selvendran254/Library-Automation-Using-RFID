@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Damage Reports{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <h2><i class="bi bi-camera-video text-danger me-2"></i>Book Damage Reports</h2>
+        <p class="text-muted mb-0">Photos submitted by members from their portal</p>
+    </div>
+    {% if pending_count %}
+    <span class="badge bg-danger fs-6">{{ pending_count }} pending review</span>
+    {% endif %}
+</div>
+
+<div class="btn-group mb-4">
+    <a href="{{ url_for('damage_reports.list_reports') }}" class="btn btn-sm {% if not status_filter %}btn-primary{% else %}btn-outline-primary{% endif %}">All</a>
+    <a href="{{ url_for('damage_reports.list_reports', status='Pending') }}" class="btn btn-sm {% if status_filter == 'Pending' %}btn-primary{% else %}btn-outline-primary{% endif %}">Pending</a>
+    <a href="{{ url_for('damage_reports.list_reports', status='Reviewed') }}" class="btn btn-sm {% if status_filter == 'Reviewed' %}btn-primary{% else %}btn-outline-primary{% endif %}">Reviewed</a>
+    <a href="{{ url_for('damage_reports.list_reports', status='Resolved') }}" class="btn btn-sm {% if status_filter == 'Resolved' %}btn-primary{% else %}btn-outline-primary{% endif %}">Resolved</a>
+</div>
+
+{% if reports %}
+<div class="row g-4">
+    {% for r in reports %}
+    <div class="col-md-6 col-xl-4">
+        <div class="card damage-report-card h-100">
+            <div class="damage-report-photo-wrap">
+                <img src="{{ url_for('static', filename=r.photo_path) }}" alt="Damage photo" class="damage-report-photo">
+                <span class="badge damage-status-badge {% if r.status == 'Pending' %}bg-danger{% elif r.status == 'Reviewed' %}bg-warning text-dark{% else %}bg-success{% endif %}">{{ r.status }}</span>
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">{{ r.book.title }}</h5>
+                <p class="small text-muted mb-2">{{ r.book.author }} · <code>{{ r.book.rfid_tag }}</code></p>
+                <div class="damage-report-meta">
+                    <div><i class="bi bi-person"></i> {{ r.member.name }}</div>
+                    <div><i class="bi bi-envelope"></i> {{ r.member.email }}</div>
+                    <div><i class="bi bi-exclamation-triangle"></i> {{ r.damage_type }}</div>
+                    <div><i class="bi bi-clock"></i> {{ r.created_at.strftime('%d-%m-%Y %I:%M %p') }}</div>
+                </div>
+                {% if r.description %}
+                <p class="small mt-2 mb-0">{{ r.description[:120] }}{% if r.description|length > 120 %}...{% endif %}</p>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent">
+                <a href="{{ url_for('damage_reports.report_detail', report_id=r.id) }}" class="btn btn-sm btn-outline-primary w-100">View Full Details</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card text-center py-5">
+    <div class="card-body">
+        <i class="bi bi-check-circle display-4 text-success d-block mb-3"></i>
+        <h5>No damage reports{% if status_filter %} with status "{{ status_filter }}"{% endif %}</h5>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

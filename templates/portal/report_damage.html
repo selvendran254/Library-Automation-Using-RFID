@@ -1,0 +1,100 @@
+{% extends "portal/base.html" %}
+{% block title %}Report Book Damage{% endblock %}
+{% block content %}
+<div class="mb-4">
+    <a href="{{ url_for('member_portal.dashboard') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Back to Dashboard</a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card portal-card shadow-sm">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0"><i class="bi bi-camera me-2"></i>Report Book Damage</h4>
+            </div>
+            <div class="card-body p-4">
+                <p class="text-muted">If your book is cut, torn, water damaged, or has any problem — take a photo and submit. Library staff will see it on the main dashboard.</p>
+
+                {% if not active %}
+                <div class="alert alert-info mb-0">
+                    <i class="bi bi-info-circle"></i> You have no books issued right now. Damage can only be reported for books you currently have.
+                </div>
+                {% else %}
+                <form method="POST" enctype="multipart/form-data" id="damageReportForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Select Book <span class="text-danger">*</span></label>
+                        <select name="transaction_id" class="form-select form-select-lg" required id="bookSelect">
+                            <option value="">— Choose damaged book —</option>
+                            {% for t in active %}
+                            <option value="{{ t.id }}" {% if selected_txn_id == t.id %}selected{% endif %}>
+                                {{ t.book.title }} — {{ t.book.author }} (Due {{ t.due_date.strftime('%d-%m-%Y') }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Damage Type <span class="text-danger">*</span></label>
+                        <select name="damage_type" class="form-select" required>
+                            <option value="">— Select damage type —</option>
+                            {% for dtype in damage_types %}
+                            <option value="{{ dtype }}">{{ dtype }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Description</label>
+                        <textarea name="description" class="form-control" rows="3" placeholder="Explain what happened — e.g. pages cut, cover torn, water spill..."></textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Damage Photo <span class="text-danger">*</span></label>
+                        <div class="damage-upload-zone" id="uploadZone">
+                            <input type="file" name="photo" id="photoInput" accept="image/*" capture="environment" required class="damage-file-input">
+                            <div class="damage-upload-placeholder" id="uploadPlaceholder">
+                                <i class="bi bi-camera-fill display-4 text-danger"></i>
+                                <h5 class="mt-3 mb-1">Upload or Take Photo</h5>
+                                <p class="text-muted mb-3">Tap to open camera on phone, or choose image from gallery</p>
+                                <div class="d-flex flex-wrap justify-content-center gap-2">
+                                    <span class="btn btn-outline-danger btn-sm"><i class="bi bi-camera"></i> Open Camera</span>
+                                    <span class="btn btn-outline-secondary btn-sm"><i class="bi bi-image"></i> Upload File</span>
+                                </div>
+                            </div>
+                            <img id="photoPreview" class="damage-photo-preview d-none" alt="Preview">
+                        </div>
+                        <div class="form-text">Max 5 MB · PNG, JPG, WEBP, GIF</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-danger btn-lg w-100">
+                        <i class="bi bi-send me-1"></i> Submit Damage Report
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var input = document.getElementById('photoInput');
+    var preview = document.getElementById('photoPreview');
+    var placeholder = document.getElementById('uploadPlaceholder');
+    if (!input) return;
+
+    input.addEventListener('change', function () {
+        var file = input.files && input.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            preview.src = e.target.result;
+            preview.classList.remove('d-none');
+            placeholder.classList.add('d-none');
+        };
+        reader.readAsDataURL(file);
+    });
+})();
+</script>
+{% endblock %}

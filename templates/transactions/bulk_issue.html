@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Bulk Issue{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-9"><div class="card">
+<div class="card-header bg-primary text-white"><h4 class="mb-0"><i class="bi bi-stack me-2"></i>Bulk Issue — Multiple Books to One Member</h4></div>
+<div class="card-body"><form method="POST">
+    <div class="mb-4"><label class="form-label fw-bold">Member RFID Card</label>
+        <div class="mb-2"><input type="text" class="form-control rfid-input" id="member_card" name="member_card" required placeholder="Focus here and scan member card...">
+        <div id="memberFeedback" class="scan-feedback"></div></div>
+    <div class="mb-4"><label class="form-label fw-bold">Select Books to Issue</label>
+        <div class="row">{% for book in available_books %}
+            <div class="col-md-6"><div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="book_tags" value="{{ book.rfid_tag }}" id="b{{ book.id }}">
+            <label class="form-check-label" for="b{{ book.id }}"><strong>{{ book.title }}</strong> <code>{{ book.rfid_tag }}</code> <span class="badge bg-success">{{ book.available_qty }} avail</span></label></div></div>
+        {% else %}<p class="text-muted">No available books.</p>{% endfor %}</div></div>
+    <button type="submit" class="btn btn-primary btn-lg w-100"><i class="bi bi-check-circle"></i> Issue Selected Books</button>
+</form></div></div></div></div>
+{% endblock %}
+{% block scripts %}<script>document.addEventListener('DOMContentLoaded',()=>{initRfidScan({formId:null,submitBtnId:null,scans:[{type:'member',targetId:'member_card',feedbackId:'memberFeedback'}]});});</script>{% endblock %}

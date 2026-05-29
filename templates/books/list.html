@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Books - Library RFID{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-journal-text me-2"></i>Books</h2>
+    <div>
+        <a href="{{ url_for('admin.export_books') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download"></i> Export</a>
+        <a href="{{ url_for('books.add_book') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-circle"></i> Add Book</a>
+    </div>
+</div>
+
+<div class="card mb-3"><div class="card-body py-2">
+    <form method="GET" class="row g-2 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label small">Category</label>
+            <select name="category" class="form-select form-select-sm">
+                <option value="">All Categories</option>
+                {% for cat in book_categories %}<option value="{{ cat }}" {% if category_filter == cat %}selected{% endif %}>{{ cat }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small">Availability</label>
+            <select name="availability" class="form-select form-select-sm">
+                <option value="">All</option>
+                <option value="available" {% if availability_filter == 'available' %}selected{% endif %}>Available</option>
+                <option value="issued" {% if availability_filter == 'issued' %}selected{% endif %}>Partially Issued</option>
+                <option value="low" {% if availability_filter == 'low' %}selected{% endif %}>Low Stock</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small">Book Status</label>
+            <select name="bstatus" class="form-select form-select-sm">
+                <option value="">All Status</option>
+                <option value="Active" {% if bstatus_filter=='Active' %}selected{% endif %}>Active</option>
+                <option value="Lost" {% if bstatus_filter=='Lost' %}selected{% endif %}>Lost</option>
+                <option value="Damaged" {% if bstatus_filter=='Damaged' %}selected{% endif %}>Damaged</option>
+                <option value="Under Repair" {% if bstatus_filter=='Under Repair' %}selected{% endif %}>Under Repair</option>
+            </select>
+        </div>
+        <div class="col-md-3"><button class="btn btn-primary btn-sm w-100">Filter</button></div>
+    </form>
+</div></div>
+
+<div class="card"><div class="card-body"><div class="table-responsive">
+<table class="table table-striped datatable">
+<thead><tr><th>ID</th><th>RFID</th><th>Title</th><th>Author</th><th>Category</th><th>Shelf</th><th>Total</th><th>Avail</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody>
+{% for book in books %}
+<tr>
+    <td>{{ book.id }}</td>
+    <td><code>{{ book.rfid_tag }}</code></td>
+    <td><a href="{{ url_for('books.book_detail', book_id=book.id) }}">{{ book.title }}</a>{% if book.is_low_stock %} <span class="badge bg-warning text-dark">Low</span>{% endif %}</td>
+    <td>{{ book.author }}</td>
+    <td>{{ book.category }}</td>
+    <td>{{ book.shelf_location or '-' }}</td>
+    <td>{{ book.total_qty }}</td>
+    <td>{% if book.available_qty > 0 %}<span class="badge bg-success">{{ book.available_qty }}</span>{% else %}<span class="badge bg-danger">0</span>{% endif %}</td>
+    <td><span class="badge {% if book.book_status=='Active' %}bg-success{% elif book.book_status=='Lost' %}bg-danger{% else %}bg-warning text-dark{% endif %}">{{ book.book_status }}</span></td>
+    <td>
+        <a href="{{ url_for('books.book_detail', book_id=book.id) }}" class="btn btn-sm btn-outline-info"><i class="bi bi-eye"></i></a>
+        <a href="{{ url_for('books.edit_book', book_id=book.id) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
+        <form action="{{ url_for('books.delete_book', book_id=book.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete?')"><button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+    </td>
+</tr>
+{% endfor %}
+</tbody></table></div></div></div>
+{% endblock %}
+{% block scripts %}<script>$(document).ready(function(){ $('.datatable').DataTable({ order: [[2,'asc']] }); });</script>{% endblock %}

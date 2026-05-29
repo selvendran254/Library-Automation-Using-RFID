@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Reservations Report{% endblock %}
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-bookmark-star me-2"></i>Reservations Report</h2>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="card stat-card stat-reserve p-3 text-center"><h6>Pending (Remaining)</h6><h3>{{ pending }}</h3></div></div>
+    <div class="col-md-4"><div class="card p-3 text-center"><h6>Fulfilled</h6><h3>{{ fulfilled }}</h3></div></div>
+    <div class="col-md-4"><div class="card p-3 text-center"><h6>Cancelled</h6><h3>{{ cancelled }}</h3></div></div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-info text-white"><i class="bi bi-hourglass-split me-1"></i> Pending Reservations (Not Yet Fulfilled)</div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0 datatable">
+            <thead><tr><th>Book</th><th>Member</th><th>Reserved</th><th>Expires</th><th>Status</th></tr></thead>
+            <tbody>
+                {% for r in pending_list %}
+                <tr>
+                    <td>{{ r.book.title }}</td>
+                    <td>{{ r.member.name }}</td>
+                    <td>{{ r.reserved_date.strftime('%d-%m-%Y') }}</td>
+                    <td>{{ r.expiry_date.strftime('%d-%m-%Y') }}</td>
+                    <td><span class="badge bg-warning text-dark">Pending</span></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-muted py-4">No pending reservations</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Completed / Cancelled Reservations</div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0 datatable">
+            <thead><tr><th>Book</th><th>Member</th><th>Reserved</th><th>Expires</th><th>Status</th></tr></thead>
+            <tbody>
+                {% for r in other_reservations %}
+                <tr>
+                    <td>{{ r.book.title }}</td>
+                    <td>{{ r.member.name }}</td>
+                    <td>{{ r.reserved_date.strftime('%d-%m-%Y') }}</td>
+                    <td>{{ r.expiry_date.strftime('%d-%m-%Y') }}</td>
+                    <td>{{ r.status }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-muted py-4">No completed reservations</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}<script>$(document).ready(function(){ $('.datatable').DataTable(); });</script>{% endblock %}

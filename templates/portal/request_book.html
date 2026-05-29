@@ -1,0 +1,26 @@
+{% extends "portal/base.html" %}
+{% block title %}Request a Book{% endblock %}
+{% block content %}
+<div class="portal-form-page">
+    <a href="{{ url_for('member_portal.dashboard') }}" class="portal-messages-back"><i class="bi bi-arrow-left"></i> Dashboard</a>
+    <h1><i class="bi bi-journal-plus"></i> {{ t('request_book') }}</h1>
+    <div class="portal-messages-card mt-3">
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+                <label class="form-label">Book Title *</label>
+                <input type="text" name="book_title" class="form-control" required maxlength="200">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Author</label>
+                <input type="text" name="author" class="form-control" maxlength="150">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Notes</label>
+                <textarea name="notes" class="form-control" rows="3" maxlength="300" placeholder="Edition, language, why you need it..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Submit Request</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,473 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Library RFID{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+        <div>
+            <h2 class="mb-2"><i class="bi bi-stars me-2"></i>Welcome to Library RFID</h2>
+            <p class="hero-sub mb-2">
+                <i class="bi bi-calendar3 me-1"></i>{{ now.strftime('%A, %d %B %Y') }}
+                &nbsp;·&nbsp;
+                <i class="bi bi-clock me-1"></i><span id="dashClock">{{ now.strftime('%I:%M %p') }}</span>
+            </p>
+            <div class="dashboard-rfid-pill {% if rfid_status.connected %}connected{% else %}not-connected{% endif %} d-inline-flex" id="dashRfidPill" title="{{ rfid_status.message }}">
+                <span class="rfid-status-dot {% if rfid_status.connected %}connected{% else %}not-connected{% endif %}" id="dashRfidDot"></span>
+                <i class="bi bi-rfid"></i>
+                <span id="dashRfidLabel">RFID {{ rfid_status.label }}</span>
+            </div>
+        </div>
+        <div class="hero-actions d-flex flex-wrap gap-2">
+            <a href="{{ url_for('transactions.issue_book') }}" class="btn btn-light btn-sm"><i class="bi bi-box-arrow-right me-1"></i> Issue Book</a>
+            <a href="{{ url_for('transactions.return_book') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-box-arrow-in-left me-1"></i> Return</a>
+            <a href="{{ url_for('tools.quick_lookup') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-upc-scan me-1"></i> Lookup</a>
+        </div>
+    </div>
+</div>
+
+{% if alert_result.due_soon or alert_result.overdue %}
+<div class="alert alert-success alert-dismissible fade show">
+    <i class="bi bi-phone me-2"></i>
+    <strong>SMS Alerts Sent:</strong>
+    {% if alert_result.overdue %}{{ alert_result.overdue }} overdue alert(s){% endif %}
+    {% if alert_result.due_soon %} {{ alert_result.due_soon }} due-soon reminder(s){% endif %}
+    sent to member phone numbers automatically.
+    <a href="{{ url_for('notifications.sms_inbox') }}" class="alert-link">View SMS Log</a>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+{% if overdue_count > 0 %}
+<div class="alert alert-danger d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span><i class="bi bi-exclamation-octagon me-2"></i><strong>{{ overdue_count }} book(s) overdue!</strong> SMS alert auto-sent to member phone.</span>
+    <a href="{{ url_for('notifications.due_alerts') }}" class="btn btn-sm btn-outline-danger">Manage Alerts</a>
+</div>
+{% endif %}
+
+{% if pending_damage_reports > 0 %}
+<div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span><i class="bi bi-camera me-2"></i><strong>{{ pending_damage_reports }} new book damage report(s)!</strong> Member uploaded photos — review now.</span>
+    <a href="{{ url_for('damage_reports.list_reports', status='Pending') }}" class="btn btn-sm btn-outline-dark">View Reports</a>
+</div>
+{% endif %}
+
+{% if active_notices %}
+<div class="row g-3 mb-4">
+    {% for n in active_notices %}
+    <div class="col-md-4">
+        <div class="notice-card {% if n.priority=='High' %}high{% else %}normal{% endif %}">
+            <div class="d-flex align-items-start gap-2">
+                <i class="bi bi-megaphone-fill fs-5 {% if n.priority=='High' %}text-danger{% else %}text-primary{% endif %}"></i>
+                <div>
+                    <strong>{{ n.title }}</strong>
+                    <p class="small text-muted mb-0 mt-1">{{ n.message[:100] }}{% if n.message|length > 100 %}...{% endif %}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Today summary -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card stat-card stat-today h-100">
+            <div class="card-body py-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted mb-1">Issues Today</h6>
+                    <h3 class="mb-0">{{ issues_today }}</h3>
+                </div>
+                <div class="stat-icon-wrap blue"><i class="bi bi-box-arrow-right"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card stat-today h-100">
+            <div class="card-body py-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted mb-1">Returns Today</h6>
+                    <h3 class="mb-0">{{ returns_today }}</h3>
+                </div>
+                <div class="stat-icon-wrap green"><i class="bi bi-box-arrow-in-left"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card h-100">
+            <div class="card-body py-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted mb-1">Book Requests</h6>
+                    <h3 class="mb-0">{{ pending_requests }}</h3>
+                    <small class="text-muted">pending</small>
+                </div>
+                <div class="stat-icon-wrap orange"><i class="bi bi-hand-index"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card h-100">
+            <div class="card-body py-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted mb-1">Lost / Damaged</h6>
+                    <h3 class="mb-0">{{ lost_damaged }}</h3>
+                    <small class="text-muted">books</small>
+                </div>
+                <div class="stat-icon-wrap red"><i class="bi bi-exclamation-diamond"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main stats -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4 col-xl-2">
+        <div class="card stat-card stat-books h-100"><div class="card-body py-3"><h6 class="text-muted mb-1">Total Books</h6><h3 class="mb-0">{{ total_books }}</h3><small class="text-success">{{ available_books }} available</small></div></div>
+    </div>
+    <div class="col-6 col-md-4 col-xl-2">
+        <div class="card stat-card stat-members h-100"><div class="card-body py-3"><h6 class="text-muted mb-1">Members</h6><h3 class="mb-0">{{ total_members }}</h3><small>{{ active_members }} active{% if expired_members %} · {{ expired_members }} expired{% endif %}</small></div></div>
+    </div>
+    <div class="col-6 col-md-4 col-xl-2">
+        <div class="card stat-card stat-issued h-100"><div class="card-body py-3"><h6 class="text-muted mb-1">Issued</h6><h3 class="mb-0">{{ issued_books }}</h3><small class="text-danger">{{ overdue_count }} overdue</small></div></div>
+    </div>
+    <div class="col-6 col-md-4 col-xl-2">
+        <div class="card stat-card stat-fines h-100"><div class="card-body py-3"><h6 class="text-muted mb-1">Pending Fines</h6><h3 class="mb-0">₹{{ "%.0f"|format(pending_fines) }}</h3></div></div>
+    </div>
+    <div class="col-6 col-md-4 col-xl-2">
+        <div class="card stat-card stat-reserve h-100"><div class="card-body py-3"><h6 class="text-muted mb-1">Reservations</h6><h3 class="mb-0">{{ pending_reservations }}</h3><small>pending</small></div></div>
+    </div>
+    <div class="col-6 col-md-4 col-xl-2">
+        <div class="card stat-card stat-low h-100"><div class="card-body py-3"><h6 class="text-muted mb-1">Low Stock</h6><h3 class="mb-0">{{ low_stock_books }}</h3><small>need restock</small></div></div>
+    </div>
+</div>
+
+<!-- Charts row -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-5">
+        <div class="card h-100 dashboard-widget glass-card">
+            <div class="card-header"><h6 class="mb-0"><i class="bi bi-graph-up me-1"></i> Weekly Activity (Last 7 Days)</h6></div>
+            <div class="card-body"><canvas id="weeklyChart" height="200"></canvas></div>
+        </div>
+    </div>
+    <div class="col-lg-3">
+        <div class="card h-100 dashboard-widget glass-card"><div class="card-header"><h6 class="mb-0">Books by Category</h6></div><div class="card-body"><canvas id="categoryChart" height="200"></canvas></div></div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card h-100 dashboard-widget glass-card">
+            <div class="card-header d-flex justify-content-between"><h6 class="mb-0 text-danger"><i class="bi bi-exclamation-triangle"></i> Due & Overdue</h6></div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush alert-list">
+                    {% for txn in overdue_list %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><strong>{{ txn.book.title }}</strong><br><small>{{ txn.member.name }} — {{ txn.due_date.strftime('%d-%m-%Y') }}</small></span>
+                        <span class="badge bg-danger">Overdue</span>
+                    </li>
+                    {% endfor %}
+                    {% for txn in upcoming_due %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><strong>{{ txn.book.title }}</strong><br><small>{{ txn.member.name }} — due {{ txn.due_date.strftime('%d-%m-%Y') }}</small></span>
+                        <span class="badge bg-warning text-dark">Due Soon</span>
+                    </li>
+                    {% endfor %}
+                    {% if not overdue_list and not upcoming_due %}
+                    <li class="list-group-item text-muted text-center py-4">No due alerts right now</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Middle widgets -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-fire me-1"></i> Popular Books</h6>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for book, count in popular_books %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><strong>{{ book.title }}</strong><br><small class="text-muted">{{ book.author }}</small></span>
+                        <span class="badge bg-primary rounded-pill">{{ count }} issues</span>
+                    </li>
+                    {% else %}
+                    <li class="list-group-item text-muted text-center py-4">No issue data yet</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-box-seam me-1"></i> Low Stock Alert</h6>
+                <a href="{{ url_for('reports.inventory_report') }}" class="btn btn-xs btn-outline-warning btn-sm">Report</a>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for book in low_stock_list %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><strong>{{ book.title }}</strong><br><small><code>{{ book.rfid_tag }}</code></small></span>
+                        <span class="badge bg-warning text-dark">{{ book.available_qty }}/{{ book.total_qty }}</span>
+                    </li>
+                    {% else %}
+                    <li class="list-group-item text-muted text-center py-4">All books well stocked</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-hand-index me-1"></i> Pending Book Requests</h6>
+                <a href="{{ url_for('book_requests.list_requests') }}" class="btn btn-xs btn-outline-primary btn-sm">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for req in pending_requests_list %}
+                    <li class="list-group-item">
+                        <strong>{{ req.book_title }}</strong>
+                        <br><small>{{ req.member.name }} — {{ req.request_date.strftime('%d-%m-%Y') if req.request_date else '' }}</small>
+                    </li>
+                    {% else %}
+                    <li class="list-group-item text-muted text-center py-4">No pending requests</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if recent_damage_reports %}
+<div class="card mb-4 dashboard-damage-section">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h5 class="mb-0"><i class="bi bi-camera-fill text-danger me-2"></i>Member Damage Reports</h5>
+        <div class="d-flex gap-2 align-items-center">
+            {% if pending_damage_reports %}<span class="badge bg-danger">{{ pending_damage_reports }} pending</span>{% endif %}
+            <a href="{{ url_for('damage_reports.list_reports') }}" class="btn btn-sm btn-outline-danger">View All</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            {% for r in recent_damage_reports %}
+            <div class="col-md-6 col-xl-4">
+                <div class="damage-dash-card">
+                    <div class="damage-dash-photo">
+                        <img src="{{ url_for('static', filename=r.photo_path) }}" alt="Damage">
+                        <span class="badge {% if r.status == 'Pending' %}bg-danger{% elif r.status == 'Reviewed' %}bg-warning text-dark{% else %}bg-success{% endif %}">{{ r.status }}</span>
+                    </div>
+                    <div class="damage-dash-body">
+                        <h6 class="mb-1">{{ r.book.title }}</h6>
+                        <p class="small text-muted mb-2">{{ r.damage_type }}</p>
+                        <div class="damage-dash-meta small">
+                            <div><i class="bi bi-person"></i> {{ r.member.name }}</div>
+                            <div><i class="bi bi-envelope"></i> {{ r.member.email }}</div>
+                            <div><i class="bi bi-phone"></i> {{ r.member.phone }}</div>
+                            <div><i class="bi bi-clock"></i> {{ r.created_at.strftime('%d-%m-%Y %I:%M %p') }}</div>
+                        </div>
+                        {% if r.description %}<p class="small mt-2 mb-2">{{ r.description[:80] }}{% if r.description|length > 80 %}...{% endif %}</p>{% endif %}
+                        <a href="{{ url_for('damage_reports.report_detail', report_id=r.id) }}" class="btn btn-sm btn-outline-primary w-100">Open Full Report</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Bottom row -->
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Transactions</h5>
+                <a href="{{ url_for('transactions.list_transactions') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 table-sm">
+                        <thead><tr><th>Book</th><th>Member</th><th>Issue</th><th>Status</th></tr></thead>
+                        <tbody>
+                            {% for txn in recent_transactions %}
+                            <tr>
+                                <td>{{ txn.book.title[:30] }}{% if txn.book.title|length > 30 %}...{% endif %}</td>
+                                <td>{{ txn.member.name }}</td>
+                                <td>{{ txn.issue_date.strftime('%d-%m-%Y') }}</td>
+                                <td>
+                                    {% if txn.status == 'Returned' %}<span class="badge bg-secondary">Returned</span>
+                                    {% elif txn.status == 'Overdue' %}<span class="badge bg-danger">Overdue</span>
+                                    {% else %}<span class="badge bg-success">Issued</span>{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-clock-history me-1"></i> Recent Activity</h6>
+                <a href="{{ url_for('admin.activity_log') }}" class="btn btn-sm btn-outline-secondary">Log</a>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush activity-feed">
+                    {% for log in recent_activity %}
+                    <li class="list-group-item py-2">
+                        <div class="d-flex justify-content-between">
+                            <span class="badge bg-light text-dark border">{{ log.action }}</span>
+                            <small class="text-muted">{{ log.created_at.strftime('%d-%m %H:%M') if log.created_at else '' }}</small>
+                        </div>
+                        <small class="d-block mt-1">{{ log.description[:80] }}{% if log.description|length > 80 %}...{% endif %}</small>
+                    </li>
+                    {% else %}
+                    <li class="list-group-item text-muted text-center py-4">No activity logged yet</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3">
+        {% if expiring_soon %}
+        <div class="card mb-3">
+            <div class="card-header bg-warning text-dark"><h6 class="mb-0"><i class="bi bi-person-x"></i> Membership Expiring</h6></div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for m in expiring_soon %}
+                    <li class="list-group-item py-2">
+                        <strong>{{ m.name }}</strong><br>
+                        <small>Expires {{ m.expiry_date.strftime('%d-%m-%Y') }}</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+        <div class="card">
+            <div class="card-header"><h6 class="mb-0">Quick Actions</h6></div>
+            <div class="card-body">
+                <div class="quick-action-grid">
+                    <a href="{{ url_for('books.add_book') }}" class="quick-action-btn"><i class="bi bi-plus-circle"></i> Add Book</a>
+                    <a href="{{ url_for('members.add_member') }}" class="quick-action-btn"><i class="bi bi-person-plus"></i> Add Member</a>
+                    <a href="{{ url_for('rfid.rfid_setup') }}" class="quick-action-btn"><i class="bi bi-rfid"></i> RFID Setup</a>
+                    <a href="{{ url_for('reports.overdue_books') }}" class="quick-action-btn"><i class="bi bi-alarm"></i> Overdue</a>
+                    <a href="{{ url_for('notices.list_notices') }}" class="quick-action-btn"><i class="bi bi-megaphone"></i> Notices</a>
+                    <a href="{{ url_for('settings.settings_home') }}" class="quick-action-btn"><i class="bi bi-gear"></i> Settings</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const catLabels = {{ category_stats | map('first') | list | tojson }};
+const catData = {{ category_stats | map('last') | list | tojson }};
+const weekLabels = {{ week_labels | tojson }};
+const weekIssues = {{ week_issues | tojson }};
+const weekReturns = {{ week_returns | tojson }};
+
+function chartThemeColors() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    return {
+        text: dark ? '#b0b8c4' : '#666',
+        grid: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+    };
+}
+
+function buildChartOptions(extra = {}) {
+    const c = chartThemeColors();
+    return {
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: { color: c.text }
+            }
+        },
+        scales: {
+            x: {
+                ticks: { color: c.text },
+                grid: { color: c.grid }
+            },
+            y: {
+                beginAtZero: true,
+                ticks: { color: c.text, stepSize: 1 },
+                grid: { color: c.grid }
+            }
+        },
+        ...extra
+    };
+}
+
+let weeklyChart;
+let categoryChart;
+
+function initDashboardCharts() {
+    const c = chartThemeColors();
+    const weeklyEl = document.getElementById('weeklyChart');
+    const categoryEl = document.getElementById('categoryChart');
+
+    if (weeklyChart) weeklyChart.destroy();
+    if (categoryChart) categoryChart.destroy();
+
+    weeklyChart = new Chart(weeklyEl, {
+        type: 'line',
+        data: {
+            labels: weekLabels,
+            datasets: [
+                { label: 'Issues', data: weekIssues, borderColor: '#5b7fff', backgroundColor: 'rgba(91,127,255,0.15)', tension: 0.3, fill: true },
+                { label: 'Returns', data: weekReturns, borderColor: '#3dd6a8', backgroundColor: 'rgba(61,214,168,0.12)', tension: 0.3, fill: true }
+            ]
+        },
+        options: buildChartOptions()
+    });
+
+    categoryChart = new Chart(categoryEl, {
+        type: 'doughnut',
+        data: {
+            labels: catLabels,
+            datasets: [{ data: catData, backgroundColor: ['#5b7fff','#9b6dff','#3dd6a8','#ff6b8a','#ffd166','#4ecdc4','#2d4059'] }]
+        },
+        options: {
+            plugins: {
+                legend: { position: 'bottom', labels: { color: c.text } }
+            }
+        }
+    });
+}
+
+initDashboardCharts();
+window.addEventListener('library-theme-change', initDashboardCharts);
+
+function updateDashClock() {
+    const el = document.getElementById('dashClock');
+    if (!el) return;
+    const now = new Date();
+    el.textContent = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+}
+setInterval(updateDashClock, 30000);
+
+async function pollDashRfid() {
+    const pill = document.getElementById('dashRfidPill');
+    const dot = document.getElementById('dashRfidDot');
+    const label = document.getElementById('dashRfidLabel');
+    if (!pill) return;
+    try {
+        const res = await fetch('/rfid/api/connection-status');
+        const data = await res.json();
+        pill.className = `dashboard-rfid-pill ${data.connected ? 'connected' : 'not-connected'}`;
+        dot.className = `rfid-status-dot ${data.connected ? 'connected' : 'not-connected'}`;
+        label.textContent = data.label;
+        pill.title = data.message || data.label;
+    } catch { /* ignore */ }
+}
+setInterval(pollDashRfid, 2500);
+</script>
+{% endblock %}

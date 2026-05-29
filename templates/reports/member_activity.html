@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Member Activity{% endblock %}
+{% block content %}
+<h2 class="mb-1"><i class="bi bi-activity me-2"></i>Member Activity Report</h2>
+<p class="text-muted mb-4">Total history + current books not returned</p>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover datatable">
+            <thead>
+                <tr>
+                    <th>Member</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Total Issues</th>
+                    <th>Books Not Returned</th>
+                    <th>Pending Fine</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for member, count in results %}
+                <tr>
+                    <td><a href="{{ url_for('members.member_detail', member_id=member.id) }}">{{ member.name }}</a></td>
+                    <td>{{ member.membership_type }}</td>
+                    <td>{{ member.status }}</td>
+                    <td><span class="badge bg-secondary">{{ count }}</span></td>
+                    <td>
+                        {% if member.current_books %}
+                            {% for t in member.current_books %}
+                            <span class="badge bg-primary me-1 mb-1">{{ t.book.title }}</span>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td>{% if member.pending_fine > 0 %}<span class="text-danger">₹{{ "%.0f"|format(member.pending_fine) }}</span>{% else %}₹0{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}<script>$(document).ready(function(){ $('.datatable').DataTable({ order: [[3,'desc']] }); });</script>{% endblock %}

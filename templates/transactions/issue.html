@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Issue Book - Library RFID{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card rfid-panel">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="bi bi-box-arrow-right me-2"></i>Issue Book (RFID)</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Step 1: Scan member card → Step 2: Scan book tag → Submit.
+                    <strong>Real RFID:</strong> USB reader plug pannitu field-la scan pannunga.
+                </div>
+
+                <form method="POST" id="issueForm">
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Member RFID Card</label>
+                        <div class="mb-2">
+                            <input type="text" class="form-control rfid-input" id="member_card" name="member_card"
+                                   placeholder="Focus here and scan member card..." required>
+                        </div>
+                        <div id="memberFeedback" class="scan-feedback"></div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Book RFID Tag</label>
+                        <div class="mb-2">
+                            <input type="text" class="form-control rfid-input" id="book_tag" name="book_tag"
+                                   placeholder="Focus here and scan book tag..." required>
+                        </div>
+                        <div id="bookFeedback" class="scan-feedback"></div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg w-100" id="issueSubmitBtn" disabled>
+                        <i class="bi bi-check-circle me-2"></i>Issue Book
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    initRfidScan({
+        formId: 'issueForm',
+        submitBtnId: 'issueSubmitBtn',
+        scans: [
+            { type: 'member', targetId: 'member_card', feedbackId: 'memberFeedback' },
+            { type: 'book', targetId: 'book_tag', feedbackId: 'bookFeedback' }
+        ]
+    });
+});
+</script>
+{% endblock %}

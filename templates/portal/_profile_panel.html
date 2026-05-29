@@ -1,0 +1,238 @@
+{% set name_parts = portal_member.name.split() %}
+{% set initials = (name_parts[0][0] ~ (name_parts[-1][0] if name_parts|length > 1 else ''))|upper %}
+
+<div class="portal-profile-panel">
+    <div class="portal-profile-panel-hero">
+        <div class="portal-profile-panel-head">
+            <div class="portal-profile-avatar">{{ initials }}</div>
+            <div class="portal-profile-panel-info">
+                <strong class="portal-profile-panel-name">{{ portal_member.name }}</strong>
+                <p class="portal-profile-panel-sub">{{ portal_member.membership_type }} · Member #{{ portal_member.id }}</p>
+            </div>
+            {% if portal_member.is_expired %}
+            <span class="portal-pill portal-pill-danger">Expired</span>
+            {% elif portal_membership_days_left is not none and portal_membership_days_left <= 30 %}
+            <span class="portal-pill portal-pill-warning">{{ portal_membership_days_left }}d left</span>
+            {% else %}
+            <span class="portal-pill portal-pill-ok">{{ portal_member.status }}</span>
+            {% endif %}
+        </div>
+
+        <div class="portal-profile-chips">
+            <span class="portal-profile-chip"><i class="bi bi-journal-bookmark"></i> {{ portal_member.active_books_count }}/{{ portal_max_books }} books</span>
+            <span class="portal-profile-chip"><i class="bi bi-calendar-check"></i> Since {{ portal_member.join_date.strftime('%b %Y') }}</span>
+            {% if portal_member.expiry_date %}
+            <span class="portal-profile-chip"><i class="bi bi-calendar-event"></i> Till {{ portal_member.expiry_date.strftime('%d %b %Y') }}</span>
+            {% endif %}
+            {% if portal_pending_fine > 0 %}
+            <span class="portal-profile-chip is-danger"><i class="bi bi-currency-rupee"></i> ₹{{ "%.0f"|format(portal_pending_fine) }} due</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="portal-profile-scroll">
+        <div class="portal-profile-section">
+            <h3 class="portal-profile-section-title"><i class="bi bi-person-vcard"></i> Contact Details</h3>
+            <div class="portal-profile-info-grid">
+                <div class="portal-profile-item">
+                    <i class="bi bi-envelope"></i>
+                    <div>
+                        <small>Email</small>
+                        <span>{{ portal_member.email }}</span>
+                    </div>
+                </div>
+                <div class="portal-profile-item">
+                    <i class="bi bi-telephone"></i>
+                    <div>
+                        <small>Phone</small>
+                        <span>{{ portal_member.phone }}</span>
+                    </div>
+                </div>
+                <div class="portal-profile-item portal-profile-item-wide">
+                    <i class="bi bi-geo-alt"></i>
+                    <div>
+                        <small>Address</small>
+                        <span>{% if portal_member.address %}{{ portal_member.address }}{% else %}Not provided{% endif %}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="portal-profile-section">
+            <h3 class="portal-profile-section-title"><i class="bi bi-award"></i> Membership</h3>
+            <div class="portal-profile-info-grid">
+                <div class="portal-profile-item">
+                    <i class="bi bi-star"></i>
+                    <div>
+                        <small>Type</small>
+                        <span>{{ portal_member.membership_type }}</span>
+                    </div>
+                </div>
+                <div class="portal-profile-item">
+                    <i class="bi bi-shield-check"></i>
+                    <div>
+                        <small>Status</small>
+                        <span>{{ portal_member.status }}</span>
+                    </div>
+                </div>
+                <div class="portal-profile-item">
+                    <i class="bi bi-calendar-plus"></i>
+                    <div>
+                        <small>Joined</small>
+                        <span>{{ portal_member.join_date.strftime('%d %b %Y') }}</span>
+                    </div>
+                </div>
+                <div class="portal-profile-item">
+                    <i class="bi bi-calendar-event"></i>
+                    <div>
+                        <small>Expiry</small>
+                        <span>{% if portal_member.expiry_date %}{{ portal_member.expiry_date.strftime('%d %b %Y') }}{% else %}No expiry{% endif %}</span>
+                    </div>
+                </div>
+                {% if portal_membership_days_left is not none %}
+                <div class="portal-profile-item">
+                    <i class="bi bi-hourglass-split"></i>
+                    <div>
+                        <small>Days Remaining</small>
+                        <span>{% if portal_membership_days_left < 0 %}Expired{% else %}{{ portal_membership_days_left }} days{% endif %}</span>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="portal-profile-item portal-profile-item-wide">
+                    <i class="bi bi-credit-card-2-front"></i>
+                    <div>
+                        <small>Library Card ID</small>
+                        <span><code>{{ portal_member.rfid_card }}</code></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="portal-profile-section">
+            <h3 class="portal-profile-section-title"><i class="bi bi-book"></i> Borrowing Rules</h3>
+            <div class="portal-profile-info-grid">
+                <div class="portal-profile-item">
+                    <i class="bi bi-journal-bookmark"></i>
+                    <div>
+                        <small>Borrow Limit</small>
+                        <span>{{ portal_max_books }} books</span>
+                    </div>
+                </div>
+                <div class="portal-profile-item">
+                    <i class="bi bi-book"></i>
+                    <div>
+                        <small>Books With You</small>
+                        <span>{{ portal_member.active_books_count }}</span>
+                    </div>
+                </div>
+                <div class="portal-profile-item">
+                    <i class="bi bi-plus-circle"></i>
+                    <div>
+                        <small>Slots Available</small>
+                        <span>{{ portal_borrow_slots_left }}</span>
+                    </div>
+                </div>
+                <div class="portal-profile-item">
+                    <i class="bi bi-calendar3"></i>
+                    <div>
+                        <small>Loan Period</small>
+                        <span>{{ portal_loan_days }} days</span>
+                    </div>
+                </div>
+                <div class="portal-profile-item">
+                    <i class="bi bi-arrow-repeat"></i>
+                    <div>
+                        <small>Max Renewals</small>
+                        <span>{{ portal_max_renewals }}</span>
+                    </div>
+                </div>
+                <div class="portal-profile-item">
+                    <i class="bi bi-calendar-plus"></i>
+                    <div>
+                        <small>Renewal Extension</small>
+                        <span>{{ portal_renewal_days }} days</span>
+                    </div>
+                </div>
+                <div class="portal-profile-item">
+                    <i class="bi bi-currency-rupee"></i>
+                    <div>
+                        <small>Fine Per Day</small>
+                        <span>₹{{ portal_fine_per_day|int }}</span>
+                    </div>
+                </div>
+                <div class="portal-profile-item">
+                    <i class="bi bi-exclamation-circle"></i>
+                    <div>
+                        <small>Overdue Now</small>
+                        <span class="{% if portal_overdue_count %}text-danger{% endif %}">{{ portal_overdue_count }} book(s)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="portal-profile-section">
+            <h3 class="portal-profile-section-title"><i class="bi bi-bar-chart"></i> Account Summary</h3>
+            <div class="portal-profile-info-grid">
+                <div class="portal-profile-item">
+                    <i class="bi bi-collection"></i>
+                    <div>
+                        <small>Total Borrowed</small>
+                        <span>{{ portal_total_borrowed }}</span>
+                    </div>
+                </div>
+                <div class="portal-profile-item">
+                    <i class="bi bi-check2-circle"></i>
+                    <div>
+                        <small>Total Returned</small>
+                        <span>{{ portal_total_returned }}</span>
+                    </div>
+                </div>
+                <div class="portal-profile-item">
+                    <i class="bi bi-wallet2"></i>
+                    <div>
+                        <small>Pending Fine</small>
+                        <span class="{% if portal_pending_fine > 0 %}text-danger{% endif %}">₹{{ "%.0f"|format(portal_pending_fine) }}</span>
+                    </div>
+                </div>
+                <div class="portal-profile-item">
+                    <i class="bi bi-bookmark-star"></i>
+                    <div>
+                        <small>Reservations</small>
+                        <span>{{ portal_pending_reservations }} pending</span>
+                    </div>
+                </div>
+                <div class="portal-profile-item">
+                    <i class="bi bi-journal-plus"></i>
+                    <div>
+                        <small>Book Requests</small>
+                        <span>{{ portal_pending_requests }} pending</span>
+                    </div>
+                </div>
+                <div class="portal-profile-item">
+                    <i class="bi bi-box-arrow-in-right"></i>
+                    <div>
+                        <small>Last Login</small>
+                        <span>{% if portal_member.portal_last_login %}{{ portal_member.portal_last_login.strftime('%d %b %Y, %I:%M %p') }}{% else %}—{% endif %}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if portal_current_books %}
+        <div class="portal-profile-section">
+            <h3 class="portal-profile-section-title"><i class="bi bi-bookshelf"></i> Current Books</h3>
+            <ul class="portal-profile-book-list">
+                {% for t in portal_current_books %}
+                <li class="{% if t.is_overdue %}is-overdue{% endif %}">
+                    <strong>{{ t.book.title }}</strong>
+                    <span>
+                        Due {{ t.due_date.strftime('%d %b %Y') }}
+                        {% if t.is_overdue %} · <em class="text-danger">Overdue</em>{% endif %}
+                    </span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</div>

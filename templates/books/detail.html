@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ book.title }} - Library RFID{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between mb-4">
+    <div><h2>{{ book.title }}</h2><p class="text-muted mb-0">by {{ book.author }}</p></div>
+    <div>
+        <a href="{{ url_for('books.edit_book', book_id=book.id) }}" class="btn btn-primary btn-sm">Edit</a>
+        <a href="{{ url_for('books.list_books') }}" class="btn btn-secondary btn-sm">Back</a>
+    </div>
+</div>
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card"><div class="card-header">Book Info</div><div class="card-body">
+            <p><strong>RFID:</strong> <code>{{ book.rfid_tag }}</code></p>
+            <p><strong>ISBN:</strong> {{ book.isbn or '-' }}</p>
+            <p><strong>Publisher:</strong> {{ book.publisher or '-' }}</p>
+            <p><strong>Category:</strong> {{ book.category }}</p>
+            <p><strong>Shelf:</strong> {{ book.shelf_location or '-' }}</p>
+            <p><strong>Total / Available:</strong> {{ book.total_qty }} / {{ book.available_qty }}</p>
+            <p><strong>Issued:</strong> {{ book.issued_count }}</p>
+            {% if book.description %}<p><strong>Description:</strong> {{ book.description }}</p>{% endif %}
+            {% if book.available_qty == 0 %}
+            <a href="{{ url_for('reservations.add_reservation') }}" class="btn btn-warning btn-sm w-100 mt-2"><i class="bi bi-bookmark-star"></i> Create Reservation</a>
+            {% endif %}
+        </div></div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card mb-3"><div class="card-header">Issue History</div><div class="card-body p-0">
+            <table class="table mb-0"><thead><tr><th>Member</th><th>Issue</th><th>Due</th><th>Return</th><th>Fine</th></tr></thead>
+            <tbody>{% for t in history %}<tr><td>{{ t.member.name }}</td><td>{{ t.issue_date.strftime('%d-%m-%Y') }}</td><td>{{ t.due_date.strftime('%d-%m-%Y') }}</td><td>{{ t.return_date.strftime('%d-%m-%Y') if t.return_date else '-' }}</td><td>{% if t.fine_amount %}₹{{ "%.0f"|format(t.fine_amount) }}{% else %}-{% endif %}</td></tr>{% else %}<tr><td colspan="5" class="text-center text-muted">No history</td></tr>{% endfor %}</tbody></table>
+        </div></div>
+        {% if reservations %}
+        <div class="card"><div class="card-header">Reservations</div><div class="card-body p-0">
+            <table class="table mb-0"><thead><tr><th>Member</th><th>Date</th><th>Status</th></tr></thead>
+            <tbody>{% for r in reservations %}<tr><td>{{ r.member.name }}</td><td>{{ r.reserved_date.strftime('%d-%m-%Y') }}</td><td><span class="badge bg-info">{{ r.status }}</span></td></tr>{% endfor %}</tbody></table>
+        </div></div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

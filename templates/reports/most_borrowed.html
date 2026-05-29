@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Most Borrowed - Library RFID{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-trophy me-2"></i>Most Borrowed Books</h2>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped datatable">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Title</th>
+                        <th>Author</th>
+                        <th>Category</th>
+                        <th>RFID Tag</th>
+                        <th>Borrow Count</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for book, count in results %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ book.title }}</td>
+                        <td>{{ book.author }}</td>
+                        <td>{{ book.category }}</td>
+                        <td><code>{{ book.rfid_tag }}</code></td>
+                        <td><span class="badge bg-primary">{{ count }}</span></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="text-center text-muted">No borrowing data yet</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() { $('.datatable').DataTable({ order: [[5, 'desc']] }); });
+</script>
+{% endblock %}

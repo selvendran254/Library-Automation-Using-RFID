@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Create Staff Account{% endblock %}
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-person-plus"></i> Create Staff Account</div>
+            <div class="card-body">
+                <p class="small text-muted">Staff login uses username and password.</p>
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-2">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" name="full_name" class="form-control" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Username</label>
+                        <input type="text" name="username" class="form-control" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Mobile Number *</label>
+                        <input type="tel" name="phone" class="form-control" pattern="[0-9]{10}" maxlength="10" required placeholder="9876543210">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Role</label>
+                        <select name="role" class="form-select">
+                            <option value="librarian">Librarian</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="text" name="password" class="form-control" value="staff123">
+                        <div class="form-text">Default password for new staff (they can change later).</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Create Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">Staff Accounts</div>
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead><tr><th>Name</th><th>Username</th><th>Phone</th><th>Role</th></tr></thead>
+                    <tbody>
+                        {% for s in staff_list %}
+                        <tr>
+                            <td>{{ s.full_name }}</td>
+                            <td>{{ s.username }}</td>
+                            <td>{{ s.phone or '—' }}</td>
+                            <td>{{ s.role }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

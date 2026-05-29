@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Overdue Books - Library RFID{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-exclamation-triangle me-2 text-danger"></i>Overdue Books</h2>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped datatable">
+                <thead>
+                    <tr>
+                        <th>Book</th>
+                        <th>Member</th>
+                        <th>Issue Date</th>
+                        <th>Due Date</th>
+                        <th>Days Overdue</th>
+                        <th>Est. Fine (₹2/day)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in overdue_rows %}
+                    {% set txn = row.transaction %}
+                    <tr>
+                        <td>{{ txn.book.title }}</td>
+                        <td>{{ txn.member.name }}</td>
+                        <td>{{ txn.issue_date.strftime('%d-%m-%Y') }}</td>
+                        <td>{{ txn.due_date.strftime('%d-%m-%Y') }}</td>
+                        <td class="text-danger fw-bold">{{ row.days_overdue }}</td>
+                        <td>₹{{ "%.0f"|format(row.estimated_fine) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="text-center text-muted">No overdue books</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() { $('.datatable').DataTable(); });
+</script>
+{% endblock %}

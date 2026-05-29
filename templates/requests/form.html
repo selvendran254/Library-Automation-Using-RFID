@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}New Book Request{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-6"><div class="card">
+<div class="card-header"><h4 class="mb-0">Request a Book</h4></div>
+<div class="card-body"><form method="POST">
+    <div class="mb-3"><label class="form-label">Member</label><select name="member_id" class="form-select" required>{% for m in members %}<option value="{{ m.id }}">{{ m.name }} — {{ m.rfid_card }}</option>{% endfor %}</select></div>
+    <div class="mb-3"><label class="form-label">Book Title</label><input type="text" class="form-control" name="book_title" required placeholder="Book name member wants"></div>
+    <div class="mb-3"><label class="form-label">Author</label><input type="text" class="form-control" name="author" placeholder="Optional"></div>
+    <div class="mb-3"><label class="form-label">Notes</label><input type="text" class="form-control" name="notes" placeholder="Optional"></div>
+    <button type="submit" class="btn btn-primary">Submit Request</button>
+    <a href="{{ url_for('book_requests.list_requests') }}" class="btn btn-secondary">Cancel</a>
+</form></div></div></div></div>
+{% endblock %}

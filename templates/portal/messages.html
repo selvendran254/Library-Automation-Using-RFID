@@ -1,0 +1,37 @@
+{% extends "portal/base.html" %}
+{% block title %}Messages{% endblock %}
+{% block main_class %}portal-main-messages{% endblock %}
+
+{% block content %}
+<div class="portal-messages-page">
+    <header class="portal-messages-head">
+        <div>
+            <a href="{{ url_for('member_portal.dashboard') }}" class="portal-messages-back"><i class="bi bi-arrow-left"></i> Dashboard</a>
+            <h1><i class="bi bi-chat-dots"></i> Messages</h1>
+            <p class="portal-thread-hint mb-0"><i class="bi bi-hand-index"></i> Click any message to open chat</p>
+        </div>
+        <div class="portal-messages-meta">
+            <span class="portal-messages-count">{{ portal_inbox|length }} conversation{{ 's' if portal_inbox|length != 1 else '' }}</span>
+            {% if unread_admin_messages %}
+            <span class="portal-messages-unread">{{ unread_admin_messages }} unread</span>
+            {% endif %}
+        </div>
+    </header>
+
+    <section class="portal-messages-card">
+        {% include "portal/_thread_list.html" %}
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var params = new URLSearchParams(window.location.search);
+    var threadId = params.get('thread');
+    if (!threadId) return;
+    var btn = document.querySelector('[data-thread-id="' + threadId + '"]');
+    if (btn) setTimeout(function () { btn.click(); }, 200);
+})();
+</script>
+{% endblock %}

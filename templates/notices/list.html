@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Notice Board{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between mb-4">
+    <h2><i class="bi bi-megaphone me-2"></i>Notice Board</h2>
+    <a href="{{ url_for('notices.add_notice') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus"></i> Post Notice</a>
+</div>
+<div class="row g-3 mb-4">
+    {% for n in active_notices %}
+    <div class="col-md-4">
+        <div class="card h-100 notice-card {% if n.priority=='High' %}border-danger{% elif n.priority=='Normal' %}border-primary{% else %}border-secondary{% endif %}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="badge {% if n.priority=='High' %}bg-danger{% elif n.priority=='Normal' %}bg-primary{% else %}bg-secondary{% endif %}">{{ n.priority }}</span>
+                    <small class="text-muted">{{ n.created_at.strftime('%d-%m-%Y') }}</small>
+                </div>
+                <h5>{{ n.title }}</h5>
+                <p class="mb-0">{{ n.message }}</p>
+            </div>
+        </div>
+    </div>
+    {% else %}<div class="col-12"><div class="alert alert-light">No active notices.</div></div>{% endfor %}
+</div>
+<div class="card"><div class="card-header">All Notices</div><div class="card-body"><table class="table datatable">
+<thead><tr><th>Title</th><th>Priority</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+<tbody>{% for n in notices %}<tr>
+    <td>{{ n.title }}</td><td>{{ n.priority }}</td>
+    <td>{% if n.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
+    <td>{{ n.created_at.strftime('%d-%m-%Y') }}</td>
+    <td>
+        <a href="{{ url_for('notices.edit_notice', notice_id=n.id) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
+        <form method="POST" action="{{ url_for('notices.delete_notice', notice_id=n.id) }}" class="d-inline" onsubmit="return confirm('Delete?')"><button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+    </td>
+</tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}
+{% block scripts %}<script>$(document).ready(function(){ $('.datatable').DataTable(); });</script>{% endblock %}

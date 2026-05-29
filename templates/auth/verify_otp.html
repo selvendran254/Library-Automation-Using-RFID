@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify OTP — Library RFID</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <style>
+        body { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg-body-accent); }
+        .login-card { max-width: 420px; width: 100%; border-radius: 18px; border: 1px solid var(--border-color); background: var(--bg-surface); box-shadow: var(--shadow-lg); }
+        .otp-input { letter-spacing: 0.5em; font-size: 1.5rem; text-align: center; font-weight: 700; }
+    </style>
+</head>
+<body>
+    <div class="login-card p-4">
+        <div class="text-center mb-4">
+            <i class="bi bi-shield-check display-5 text-primary"></i>
+            <h1 class="h4 mt-2">Enter OTP</h1>
+            <p class="text-muted small mb-0">6-digit OTP sent to <strong>{{ phone }}</strong> via SMS</p>
+        </div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} py-2">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+                <label class="form-label">6-digit OTP</label>
+                <input type="text" name="otp" class="form-control otp-input" maxlength="6" minlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" required autofocus placeholder="------">
+                <div class="form-text">Check SMS on your phone. Wrong OTP will show <strong>Invalid OTP</strong>.</div>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 mb-2">Verify & Login</button>
+            <a href="{{ url_for('auth.login') if user_type == 'staff' else url_for('member_portal.login_page') }}" class="btn btn-outline-secondary w-100">Change number</a>
+        </form>
+    </div>
+</body>
+</html>

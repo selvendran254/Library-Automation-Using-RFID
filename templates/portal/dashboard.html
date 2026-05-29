@@ -1,0 +1,234 @@
+{% extends "portal/base.html" %}
+{% block title %}My Dashboard{% endblock %}
+{% block main_class %}portal-main-dashboard{% endblock %}
+{% block content %}
+
+{% set first_name = member.name.split(' ')[0] %}
+
+<div class="portal-bento">
+    <header class="bento-topbar">
+        <div class="bento-topbar-left">
+            <span class="bento-eyebrow">Member Portal · #{{ member.id }}</span>
+            <h1>Hello, {{ first_name }} 👋</h1>
+            <p>{{ member.name }} · {{ member.membership_type }} · {{ member.status }}</p>
+        </div>
+        <div class="bento-topbar-stats">
+            <div class="bento-mini-stat">
+                <i class="bi bi-journal-bookmark"></i>
+                <div><small>Books</small><strong>{{ member.active_books_count }}/{{ max_books }}</strong></div>
+            </div>
+            <div class="bento-mini-stat">
+                <i class="bi bi-currency-rupee"></i>
+                <div><small>Fine</small><strong class="{% if member.pending_fine > 0 %}text-danger{% endif %}">₹{{ "%.0f"|format(member.pending_fine) }}</strong></div>
+            </div>
+            <div class="bento-mini-stat {% if overdue_books %}is-alert{% endif %}">
+                <i class="bi bi-alarm"></i>
+                <div><small>Overdue</small><strong>{{ overdue_books|length }}</strong></div>
+            </div>
+            <div class="bento-mini-stat">
+                <i class="bi bi-plus-circle"></i>
+                <div><small>Slots</small><strong>{{ borrow_slots_left }}</strong></div>
+            </div>
+        </div>
+    </header>
+
+    {% if overdue_books %}
+    <div class="bento-alert">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span><strong>{{ overdue_books|length }} book overdue</strong> — Return soon · ₹{{ fine_per_day|int }}/day fine</span>
+    </div>
+    {% elif unread_admin_messages %}
+    <div class="bento-alert bento-alert-info">
+        <i class="bi bi-envelope-heart-fill"></i>
+        <span><strong>New library reply</strong> — Check messages below</span>
+    </div>
+    {% elif upcoming_due %}
+    <div class="bento-alert bento-alert-info">
+        <i class="bi bi-calendar-event"></i>
+        <span><strong>{{ upcoming_due|length }} book(s) due soon</strong> — Return within 3 days</span>
+    </div>
+    {% endif %}
+
+    <section class="bento-quick-actions">
+        <a href="{{ url_for('member_portal.request_book') }}" class="bento-quick-btn"><i class="bi bi-journal-plus"></i> {{ t('request_book') }}</a>
+        <a href="{{ url_for('member_portal.reserve_book') }}" class="bento-quick-btn"><i class="bi bi-bookmark-star"></i> {{ t('reserve_book') }}</a>
+        <a href="{{ url_for('member_portal.renew_membership_request') }}" class="bento-quick-btn"><i class="bi bi-arrow-repeat"></i> {{ t('renew_membership') }}</a>
+        <a href="{{ url_for('member_portal.messages_page') }}" class="bento-quick-btn"><i class="bi bi-chat-dots"></i> {{ t('messages') }}</a>
+    </section>
+
+    <section class="bento-box bento-account">
+        <div class="bento-box-head">
+            <h2><i class="bi bi-person-vcard"></i> My Account Details</h2>
+            <span class="portal-tag tag-info">Member #{{ member.id }}</span>
+        </div>
+        <div class="bento-details-grid">
+            <div class="bento-detail-group">
+                <h3>Contact</h3>
+                <div class="bento-detail-row"><i class="bi bi-envelope"></i><span><small>Email</small><strong>{{ member.email }}</strong></span></div>
+                <div class="bento-detail-row"><i class="bi bi-telephone"></i><span><small>Phone</small><strong>{{ member.phone }}</strong></span></div>
+                <div class="bento-detail-row"><i class="bi bi-geo-alt"></i><span><small>Address</small><strong>{% if member.address %}{{ member.address }}{% else %}—{% endif %}</strong></span></div>
+                <div class="bento-detail-row"><i class="bi bi-credit-card-2-front"></i><span><small>Card ID</small><strong><code>{{ member.rfid_card }}</code></strong></span></div>
+            </div>
+            <div class="bento-detail-group">
+                <h3>Membership</h3>
+                <div class="bento-detail-row"><i class="bi bi-star"></i><span><small>Type</small><strong>{{ member.membership_type }}</strong></span></div>
+                <div class="bento-detail-row"><i class="bi bi-shield-check"></i><span><small>Status</small><strong>{{ member.status }}</strong></span></div>
+                <div class="bento-detail-row"><i class="bi bi-calendar-plus"></i><span><small>Joined</small><strong>{{ member.join_date.strftime('%d %b %Y') }}</strong></span></div>
+                <div class="bento-detail-row"><i class="bi bi-calendar-event"></i><span><small>Expiry</small><strong>{% if member.expiry_date %}{{ member.expiry_date.strftime('%d %b %Y') }}{% else %}No expiry{% endif %}</strong></span></div>
+                {% if membership_days_left is not none %}
+                <div class="bento-detail-row"><i class="bi bi-hourglass"></i><span><small>Days Left</small><strong class="{% if membership_days_left <= 30 %}text-warning{% endif %}">{% if membership_days_left < 0 %}Expired{% else %}{{ membership_days_left }} days{% endif %}</strong></span></div>
+                {% endif %}
+            </div>
+            <div class="bento-detail-group">
+                <h3>Borrowing</h3>
+                <div class="bento-detail-row"><i class="bi bi-journal-bookmark"></i><span><small>Borrow Limit</small><strong>{{ max_books }} books</strong></span></div>
+                <div class="bento-detail-row"><i class="bi bi-book"></i><span><small>With You Now</small><strong>{{ member.active_books_count }}</strong></span></div>
+                <div class="bento-detail-row"><i class="bi bi-plus-circle"></i><span><small>Slots Free</small><strong>{{ borrow_slots_left }}</strong></span></div>
+                <div class="bento-detail-row"><i class="bi bi-calendar3"></i><span><small>Loan Period</small><strong>{{ loan_days }} days</strong></span></div>
+                <div class="bento-detail-row"><i class="bi bi-arrow-repeat"></i><span><small>Renewals</small><strong>{{ max_renewals }} × {{ renewal_days }}d</strong></span></div>
+                <div class="bento-detail-row"><i class="bi bi-currency-rupee"></i><span><small>Fine/Day</small><strong>₹{{ fine_per_day|int }}</strong></span></div>
+            </div>
+            <div class="bento-detail-group">
+                <h3>Activity</h3>
+                <div class="bento-detail-row"><i class="bi bi-collection"></i><span><small>Total Borrowed</small><strong>{{ total_borrowed }}</strong></span></div>
+                <div class="bento-detail-row"><i class="bi bi-check2-circle"></i><span><small>Total Returned</small><strong>{{ total_returned }}</strong></span></div>
+                <div class="bento-detail-row"><i class="bi bi-wallet2"></i><span><small>Pending Fine</small><strong class="{% if member.pending_fine > 0 %}text-danger{% endif %}">₹{{ "%.0f"|format(member.pending_fine) }}</strong></span></div>
+                <div class="bento-detail-row"><i class="bi bi-bookmark-star"></i><span><small>Reservations</small><strong>{{ reservations|length }} pending</strong></span></div>
+                <div class="bento-detail-row"><i class="bi bi-journal-plus"></i><span><small>Book Requests</small><strong>{{ pending_requests|length }} pending</strong></span></div>
+                <div class="bento-detail-row"><i class="bi bi-box-arrow-in-right"></i><span><small>Last Login</small><strong>{% if member.portal_last_login %}{{ member.portal_last_login.strftime('%d %b, %I:%M %p') }}{% else %}—{% endif %}</strong></span></div>
+            </div>
+        </div>
+    </section>
+
+    {% if reservations or pending_requests or upcoming_due %}
+    <section class="bento-extras">
+        {% if upcoming_due %}
+        <div class="bento-extra-chip">
+            <i class="bi bi-calendar-event"></i>
+            <div>
+                <strong>Due Soon</strong>
+                {% for t in upcoming_due %}<span>{{ t.book.title }}{% if not loop.last %}, {% endif %}</span>{% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% if reservations %}
+        <div class="bento-extra-chip">
+            <i class="bi bi-bookmark-star"></i>
+            <div>
+                <strong>Reservations ({{ reservations|length }})</strong>
+                {% for r in reservations[:3] %}<span>{{ r.book.title if r.book else 'Book' }}{% if not loop.last %}, {% endif %}</span>{% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% if pending_requests %}
+        <div class="bento-extra-chip">
+            <i class="bi bi-journal-plus"></i>
+            <div>
+                <strong>Book Requests ({{ pending_requests|length }})</strong>
+                {% for r in pending_requests[:3] %}<span>{{ r.book_title }}{% if not loop.last %}, {% endif %}</span>{% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </section>
+    {% endif %}
+
+    <div class="bento-grid">
+        <section class="bento-box bento-books">
+            <div class="bento-box-head">
+                <h2><i class="bi bi-book-half"></i> My Books ({{ active|length }})</h2>
+                {% if active %}
+                <a href="{{ url_for('member_portal.report_damage') }}" class="bento-action"><i class="bi bi-camera"></i> Report</a>
+                {% endif %}
+            </div>
+            {% if active %}
+            <div class="bento-book-grid">
+                {% for t in active %}
+                <article class="bento-book-tile {% if t.is_overdue %}is-overdue{% endif %}">
+                    <div class="bento-book-tile-cover"><i class="bi bi-journal-bookmark-fill"></i></div>
+                    <h3>{{ t.book.title }}</h3>
+                    <p class="author">{{ t.book.author }}</p>
+                    <div class="bento-book-tile-meta">
+                        <span><i class="bi bi-calendar3"></i> Issued {{ t.issue_date.strftime('%d %b %Y') }}</span>
+                        <span><i class="bi bi-upc"></i> {{ t.book.isbn or '—' }}</span>
+                    </div>
+                    <div class="bento-book-tile-foot">
+                        {% if t.is_overdue %}
+                        <span class="portal-tag tag-danger">{{ t.days_overdue }}d late · ₹{{ "%.0f"|format(t.estimated_fine) }}</span>
+                        {% else %}
+                        {% set days_left = (t.due_date.date() - now.date()).days %}
+                        <span class="portal-tag tag-success">{% if days_left == 0 %}Due today{% elif days_left == 1 %}Tomorrow{% else %}{{ days_left }}d left{% endif %}</span>
+                        <small>Due {{ t.due_date.strftime('%d %b %Y') }}</small>
+                        {% endif %}
+                    </div>
+                    <a href="{{ url_for('member_portal.report_damage', transaction_id=t.id) }}" class="bento-book-tile-btn" title="Report damage"><i class="bi bi-camera"></i></a>
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="bento-empty"><i class="bi bi-bookshelf"></i><p>No books with you</p></div>
+            {% endif %}
+        </section>
+
+        <section class="bento-box bento-messages">
+            <div class="bento-box-head">
+                <h2><i class="bi bi-chat-dots"></i> Messages ({{ portal_inbox|length }})</h2>
+                {% if portal_inbox|length > 4 %}
+                <a href="{{ url_for('member_portal.messages_page') }}" class="bento-action">View all →</a>
+                {% elif portal_inbox %}
+                <a href="{{ url_for('member_portal.messages_page') }}" class="bento-action">Open →</a>
+                {% endif %}
+            </div>
+            <p class="portal-thread-hint"><i class="bi bi-hand-index"></i> Click any message to open chat</p>
+            {% set compact = true %}
+            {% set portal_inbox = portal_inbox_preview %}
+            {% include "portal/_thread_list.html" %}
+        </section>
+
+        <section class="bento-box bento-notices">
+            <div class="bento-box-head">
+                <h2><i class="bi bi-megaphone"></i> Notices ({{ notices|length }})</h2>
+            </div>
+            {% if notices %}
+            {% for notice in notices %}
+            <div class="bento-list-item {% if notice.priority == 'High' %}is-hot{% endif %}">
+                <div class="bento-list-top">
+                    <strong>{{ notice.title }}</strong>
+                    {% if notice.priority == 'High' %}<span class="portal-tag tag-danger">Important</span>{% endif %}
+                </div>
+                <p class="bento-list-text">{{ notice.message }}</p>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="bento-empty sm"><p>No notices</p></div>
+            {% endif %}
+        </section>
+
+        <section class="bento-box bento-history">
+            <div class="bento-box-head">
+                <h2><i class="bi bi-clock-history"></i> History ({{ history|length }})</h2>
+                <a href="{{ url_for('member_portal.history') }}" class="bento-action">View all →</a>
+            </div>
+            {% if unpaid_fines %}
+            <div class="bento-fine-bar">
+                <i class="bi bi-exclamation-circle"></i> Unpaid fines ({{ unpaid_fines|length }}): <strong>₹{{ "%.0f"|format(member.pending_fine) }}</strong>
+            </div>
+            {% endif %}
+            <div class="bento-history-grid">
+                {% for t in history[:6] %}
+                <div class="bento-history-chip">
+                    <div class="bento-history-icon"><i class="bi bi-book"></i></div>
+                    <div>
+                        <strong>{{ t.book.title }}</strong>
+                        <small>{{ t.book.author }} · {{ t.issue_date.strftime('%d %b') }}{% if t.return_date %} → {{ t.return_date.strftime('%d %b %Y') }}{% else %} · Due {{ t.due_date.strftime('%d %b') }}{% endif %}{% if t.fine_amount and t.fine_amount > 0 %} · Fine ₹{{ "%.0f"|format(t.fine_amount) }}{% endif %}</small>
+                    </div>
+                    {% if t.return_date %}<span class="portal-tag tag-muted">Returned</span>
+                    {% elif t.is_overdue %}<span class="portal-tag tag-danger">Overdue</span>
+                    {% else %}<span class="portal-tag tag-info">Issued</span>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+</div>
+
+{% endblock %}

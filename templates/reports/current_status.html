@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% block title %}Current Status Report{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div>
+        <h2 class="mb-1"><i class="bi bi-clipboard-data me-2"></i>Current Status Report</h2>
+        <p class="text-muted mb-0">Return pannatha books, remaining stock, pending fines & reservations — live data</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('reports.export_current_status') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download"></i> Export CSV</a>
+        <a href="{{ url_for('reports.reports_home') }}" class="btn btn-secondary btn-sm">All Reports</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="card stat-card stat-issued h-100"><div class="card-body py-3 text-center">
+            <h6 class="text-muted mb-1">Not Returned</h6><h3 class="mb-0">{{ stats.issued_count }}</h3>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="card stat-card stat-fines h-100"><div class="card-body py-3 text-center">
+            <h6 class="text-muted mb-1">Overdue</h6><h3 class="mb-0 text-danger">{{ stats.overdue_count }}</h3>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="card stat-card stat-books h-100"><div class="card-body py-3 text-center">
+            <h6 class="text-muted mb-1">Remaining Copies</h6><h3 class="mb-0">{{ stats.remaining_copies }}</h3>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="card stat-card stat-members h-100"><div class="card-body py-3 text-center">
+            <h6 class="text-muted mb-1">Members w/ Books</h6><h3 class="mb-0">{{ stats.members_with_books }}</h3>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="card stat-card stat-fines h-100"><div class="card-body py-3 text-center">
+            <h6 class="text-muted mb-1">Pending Fines</h6><h3 class="mb-0">₹{{ "%.0f"|format(stats.pending_fines_total) }}</h3>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="card stat-card stat-reserve h-100"><div class="card-body py-3 text-center">
+            <h6 class="text-muted mb-1">Pending Reserve</h6><h3 class="mb-0">{{ stats.pending_reservations }}</h3>
+        </div></div>
+    </div>
+</div>
+
+<ul class="nav nav-pills mb-4 flex-wrap gap-1" id="statusTabs" role="tablist">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-not-returned">Not Returned ({{ stats.issued_count }})</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-overdue">Overdue ({{ stats.overdue_count }})</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-remaining">Remaining Books ({{ stats.remaining_copies }})</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-members">Members & Books</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-fines">Pending Fines</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-reserve">Pending Reservations</button></li>
+</ul>
+
+<div class="tab-content">
+    <div class="tab-pane fade show active" id="tab-not-returned">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-box-arrow-right me-1"></i> Books Not Returned (Currently Issued)</div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0 datatable">
+                    <thead><tr><th>Book</th><th>RFID</th><th>Member</th><th>Phone</th><th>Issue</th><th>Due</th><th>Status</th></tr></thead>
+                    <tbody>
+                        {% for row in issued_rows %}{% set t = row.transaction %}
+                        <tr>
+                            <td><strong>{{ t.book.title }}</strong></td>
+                            <td><code>{{ t.book.rfid_tag }}</code></td>
+                            <td><a href="{{ url_for('members.member_detail', member_id=t.member.id) }}">{{ t.member.name }}</a></td>
+                            <td>{{ t.member.phone }}</td>
+                            <td>{{ t.issue_date.strftime('%d-%m-%Y') }}</td>
+                            <td>{{ t.due_date.strftime('%d-%m-%Y') }}</td>
+                            <td>
+                                {% if row.days_left < 0 %}<span class="badge bg-danger">{{ row.days_left * -1 }} days overdue</span>
+                                {% elif row.days_left == 0 %}<span class="badge bg-warning text-dark">Due today</span>
+                                {% else %}<span class="badge bg-success">{{ row.days_left }} days left</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% else %}<tr><td colspan="7" class="text-center text-muted py-4">All books returned — nothing outstanding</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="tab-overdue">
+        <div class="card">
+            <div class="card-header text-danger"><i class="bi bi-exclamation-triangle me-1"></i> Overdue — Not Returned</div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0 datatable">
+                    <thead><tr><th>Book</th><th>Member</th><th>Due Date</th><th>Days Overdue</th><th>Est. Fine (₹{{ fine_rate }}/day)</th></tr></thead>
+                    <tbody>
+                        {% for row in overdue_rows %}{% set t = row.transaction %}
+                        <tr>
+                            <td>{{ t.book.title }}</td>
+                            <td>{{ t.member.name }}</td>
+                            <td>{{ t.due_date.strftime('%d-%m-%Y') }}</td>
+                            <td class="text-danger fw-bold">{{ row.days_overdue }}</td>
+                            <td>₹{{ "%.0f"|format(row.estimated_fine) }}</td>
+                        </tr>
+                        {% else %}<tr><td colspan="5" class="text-center text-muted py-4">No overdue books</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="tab-remaining">
+        <div class="card mb-4">
+            <div class="card-header"><i class="bi bi-bookshelf me-1"></i> Remaining Available Books</div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0 datatable">
+                    <thead><tr><th>RFID</th><th>Title</th><th>Category</th><th>Shelf</th><th>Total</th><th>Available</th><th>Issued Out</th></tr></thead>
+                    <tbody>
+                        {% for b in remaining_books %}
+                        <tr>
+                            <td><code>{{ b.rfid_tag }}</code></td>
+                            <td>{{ b.title }}</td>
+                            <td>{{ b.category }}</td>
+                            <td>{{ b.shelf_location or '-' }}</td>
+                            <td>{{ b.total_qty }}</td>
+                            <td><span class="badge bg-success">{{ b.available_qty }}</span></td>
+                            <td>{{ b.total_qty - b.available_qty }}</td>
+                        </tr>
+                        {% else %}<tr><td colspan="7" class="text-center text-muted py-4">No available books in stock</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% if partially_issued %}
+        <div class="card">
+            <div class="card-header"><i class="bi bi-arrow-left-right me-1"></i> Books Partially Issued (some copies out)</div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>Title</th><th>Total</th><th>Available</th><th>Issued Out</th></tr></thead>
+                    <tbody>
+                        {% for b in partially_issued %}
+                        <tr><td>{{ b.title }}</td><td>{{ b.total_qty }}</td><td>{{ b.available_qty }}</td><td>{{ b.total_qty - b.available_qty }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="tab-pane fade" id="tab-members">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-people me-1"></i> Members — Books Not Returned</div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead><tr><th>Member</th><th>Card</th><th>Phone</th><th>Books Taken (Not Returned)</th><th>Count</th></tr></thead>
+                    <tbody>
+                        {% for m in members_with_books %}
+                        <tr>
+                            <td><a href="{{ url_for('members.member_detail', member_id=m.id) }}">{{ m.name }}</a></td>
+                            <td><code>{{ m.rfid_card }}</code></td>
+                            <td>{{ m.phone }}</td>
+                            <td>
+                                {% for t in m.current_books %}
+                                <span class="badge bg-primary me-1 mb-1">{{ t.book.title }}{% if t.is_overdue %} (Overdue){% endif %}</span>
+                                {% endfor %}
+                            </td>
+                            <td>{{ m.active_books_count }}</td>
+                        </tr>
+                        {% else %}<tr><td colspan="5" class="text-center text-muted py-4">No members with outstanding books</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="tab-fines">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-currency-rupee me-1"></i> Pending Fines (₹{{ "%.0f"|format(stats.pending_fines_total) }})</div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0 datatable">
+                    <thead><tr><th>Member</th><th>Book</th><th>Return Date</th><th>Amount</th></tr></thead>
+                    <tbody>
+                        {% for f in pending_fines %}
+                        <tr>
+                            <td>{{ f.member.name }}</td>
+                            <td>{{ f.book.title }}</td>
+                            <td>{{ f.return_date.strftime('%d-%m-%Y') if f.return_date else '-' }}</td>
+                            <td class="text-danger fw-semibold">₹{{ "%.0f"|format(f.fine_amount) }}</td>
+                        </tr>
+                        {% else %}<tr><td colspan="4" class="text-center text-muted py-4">No pending fines</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="tab-reserve">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-bookmark-star me-1"></i> Pending Reservations</div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0 datatable">
+                    <thead><tr><th>Book</th><th>Member</th><th>Reserved</th><th>Expires</th></tr></thead>
+                    <tbody>
+                        {% for r in pending_reservations %}
+                        <tr>
+                            <td>{{ r.book.title }}</td>
+                            <td>{{ r.member.name }}</td>
+                            <td>{{ r.reserved_date.strftime('%d-%m-%Y') }}</td>
+                            <td>{{ r.expiry_date.strftime('%d-%m-%Y') }}</td>
+                        </tr>
+                        {% else %}<tr><td colspan="4" class="text-center text-muted py-4">No pending reservations</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function () {
+    $('.datatable').DataTable({ pageLength: 25 });
+    document.querySelectorAll('[data-bs-toggle="pill"]').forEach(function (btn) {
+        btn.addEventListener('shown.bs.tab', function () {
+            $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+        });
+    });
+});
+</script>
+{% endblock %}

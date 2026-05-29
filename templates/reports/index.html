@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h2 class="mb-1"><i class="bi bi-bar-chart me-2"></i>Reports & Analytics</h2>
+        <p class="text-muted mb-0">Current outstanding data & library analytics</p>
+    </div>
+    <a href="{{ url_for('reports.current_status') }}" class="btn btn-primary"><i class="bi bi-clipboard-data me-1"></i> Current Status Report</a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="card stat-card stat-issued h-100"><div class="card-body py-3 text-center">
+            <h6 class="text-muted mb-1">Not Returned</h6><h4 class="mb-0">{{ issued_count }}</h4>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="card stat-card stat-fines h-100"><div class="card-body py-3 text-center">
+            <h6 class="text-muted mb-1">Overdue</h6><h4 class="mb-0 text-danger">{{ overdue_count }}</h4>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="card stat-card stat-books h-100"><div class="card-body py-3 text-center">
+            <h6 class="text-muted mb-1">Remaining</h6><h4 class="mb-0">{{ available_copies }}</h4>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="card stat-card stat-issued h-100"><div class="card-body py-3 text-center">
+            <h6 class="text-muted mb-1">Issued Out</h6><h4 class="mb-0">{{ issued_copies }}</h4>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="card stat-card stat-fines h-100"><div class="card-body py-3 text-center">
+            <h6 class="text-muted mb-1">Pending Fines</h6><h4 class="mb-0">₹{{ "%.0f"|format(pending_fines) }}</h4>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="card stat-card stat-reserve h-100"><div class="card-body py-3 text-center">
+            <h6 class="text-muted mb-1">Pending Reserve</h6><h4 class="mb-0">{{ pending_reservations }}</h4>
+        </div></div>
+    </div>
+</div>
+
+<h5 class="mb-3"><i class="bi bi-lightning-charge me-1 text-warning"></i> Current & Outstanding</h5>
+<div class="row g-3 mb-4">
+    {% set current_reports = [
+        ('current-status', 'Current Status', 'Not returned, remaining, fines, reservations — all in one', 'bi-clipboard-data', 'primary'),
+        ('issued-books', 'Issued Books', 'All books not yet returned', 'bi-box-arrow-right', 'success'),
+        ('overdue-books', 'Overdue Books', 'Past due — still not returned', 'bi-exclamation-triangle', 'danger'),
+        ('inventory', 'Inventory / Remaining', 'Available copies & issued out count', 'bi-box-seam', 'warning'),
+        ('fine-summary', 'Pending Fines', 'Unpaid fine collection', 'bi-currency-rupee', 'danger'),
+        ('reservations', 'Pending Reservations', 'Waiting reservation list', 'bi-bookmark-star', 'info'),
+    ] %}
+    {% set current_endpoints = {
+        'current-status': 'current_status', 'issued-books': 'issued_books', 'overdue-books': 'overdue_books',
+        'inventory': 'inventory_report', 'fine-summary': 'fine_summary', 'reservations': 'reservations_report'
+    } %}
+    {% for ep, title, desc, icon, color in current_reports %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card report-card h-100 border-{{ color }} border-opacity-25">
+            <div class="card-body">
+                <i class="bi {{ icon }} report-icon text-{{ color }}"></i>
+                <h5>{{ title }}</h5>
+                <p class="text-muted small">{{ desc }}</p>
+                <a href="{{ url_for('reports.' + current_endpoints[ep]) }}" class="btn btn-outline-{{ color }} btn-sm">Open Report</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<h5 class="mb-3"><i class="bi bi-graph-up me-1"></i> Analytics & Search</h5>
+<div class="row g-3">
+    {% set analytics_reports = [
+        ('search-books', 'Search Books', 'Find by title, author, RFID, ISBN', 'bi-search', 'primary'),
+        ('search-members', 'Search Members', 'Find by name, card, email', 'bi-person-search', 'info'),
+        ('most-borrowed', 'Most Borrowed', 'Top 10 popular books', 'bi-trophy', 'secondary'),
+        ('category-wise', 'Category Report', 'Books by category breakdown', 'bi-grid', 'primary'),
+        ('member-activity', 'Member Activity', 'Borrow history & current books', 'bi-activity', 'info'),
+        ('daily-transactions', 'Daily Transactions', 'Issue count by day', 'bi-calendar-day', 'success'),
+    ] %}
+    {% set analytics_endpoints = {
+        'search-books': 'search_books', 'search-members': 'search_members',
+        'most-borrowed': 'most_borrowed', 'category-wise': 'category_wise',
+        'member-activity': 'member_activity', 'daily-transactions': 'daily_transactions',
+    } %}
+    {% for ep, title, desc, icon, color in analytics_reports %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card report-card h-100">
+            <div class="card-body">
+                <i class="bi {{ icon }} report-icon text-{{ color }}"></i>
+                <h5>{{ title }}</h5>
+                <p class="text-muted small">{{ desc }}</p>
+                <a href="{{ url_for('reports.' + analytics_endpoints[ep]) }}" class="btn btn-outline-{{ color }} btn-sm">Open Report</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

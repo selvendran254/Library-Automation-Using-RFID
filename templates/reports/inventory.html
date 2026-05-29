@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Inventory Report{% endblock %}
+{% block content %}
+<h2 class="mb-1"><i class="bi bi-box-seam me-2"></i>Inventory & Remaining Stock</h2>
+<p class="text-muted mb-4">Available copies (remaining) vs issued out (not returned to shelf)</p>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="card stat-card stat-books p-3 text-center"><h6>Total Titles</h6><h3>{{ all_books|length }}</h3></div></div>
+    <div class="col-md-3"><div class="card stat-card stat-issued p-3 text-center"><h6>Issued Out</h6><h3>{{ total_issued }}</h3><small class="text-muted">not returned</small></div></div>
+    <div class="col-md-3"><div class="card stat-card stat-members p-3 text-center"><h6>Remaining Available</h6><h3>{{ total_available }}</h3><small class="text-muted">copies on shelf</small></div></div>
+    <div class="col-md-3"><div class="card stat-card stat-fines p-3 text-center"><h6>Out of Stock</h6><h3>{{ out_of_stock|length }}</h3></div></div>
+</div>
+
+{% if currently_issued_books %}
+<div class="card mb-4">
+    <div class="card-header"><i class="bi bi-box-arrow-right me-1"></i> Books With Copies Issued Out ({{ currently_issued_books|length }})</div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>Title</th><th>RFID</th><th>Total</th><th>Available</th><th>Issued Out</th></tr></thead>
+            <tbody>
+                {% for b in currently_issued_books %}
+                <tr>
+                    <td>{{ b.title }}</td><td><code>{{ b.rfid_tag }}</code></td>
+                    <td>{{ b.total_qty }}</td><td>{{ b.available_qty }}</td>
+                    <td><span class="badge bg-primary">{{ b.total_qty - b.available_qty }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header">Full Inventory</div>
+    <div class="card-body">
+        <table class="table table-striped datatable">
+            <thead><tr><th>RFID</th><th>Title</th><th>Category</th><th>Shelf</th><th>Total</th><th>Available</th><th>Issued Out</th><th>Status</th></tr></thead>
+            <tbody>
+                {% for b in all_books %}
+                <tr>
+                    <td><code>{{ b.rfid_tag }}</code></td>
+                    <td>{{ b.title }}</td>
+                    <td>{{ b.category }}</td>
+                    <td>{{ b.shelf_location or '-' }}</td>
+                    <td>{{ b.total_qty }}</td>
+                    <td>{{ b.available_qty }}</td>
+                    <td>{% if b.total_qty > b.available_qty %}<span class="badge bg-primary">{{ b.total_qty - b.available_qty }}</span>{% else %}0{% endif %}</td>
+                    <td>
+                        {% if b.available_qty == 0 %}<span class="badge bg-danger">Out of Stock</span>
+                        {% elif b.is_low_stock %}<span class="badge bg-warning text-dark">Low Stock</span>
+                        {% else %}<span class="badge bg-success">OK</span>{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}<script>$(document).ready(function(){ $('.datatable').DataTable(); });</script>{% endblock %}

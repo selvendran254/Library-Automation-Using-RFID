@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if book else 'Add' }} Book{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-9"><div class="card">
+<div class="card-header"><h4 class="mb-0">{{ 'Edit' if book else 'Add' }} Book</h4></div>
+<div class="card-body"><form method="POST">
+    <div class="row">
+        <div class="col-md-6 mb-3"><label class="form-label">RFID Tag</label>
+            <div class="input-group"><input type="text" class="form-control" id="rfid_tag" name="rfid_tag" value="{{ book.rfid_tag if book else '' }}" required>
+            {% if not book %}<button type="button" class="btn btn-outline-secondary" id="generateRfidBtn"><i class="bi bi-shuffle"></i></button>{% endif %}</div></div>
+        <div class="col-md-6 mb-3"><label class="form-label">ISBN</label><input type="text" class="form-control" name="isbn" value="{{ book.isbn if book else '' }}"></div>
+    </div>
+    <div class="mb-3"><label class="form-label">Title</label><input type="text" class="form-control" name="title" value="{{ book.title if book else '' }}" required></div>
+    <div class="row">
+        <div class="col-md-6 mb-3"><label class="form-label">Author</label><input type="text" class="form-control" name="author" value="{{ book.author if book else '' }}" required></div>
+        <div class="col-md-6 mb-3"><label class="form-label">Publisher</label><input type="text" class="form-control" name="publisher" value="{{ book.publisher if book else '' }}"></div>
+    </div>
+    <div class="row">
+        <div class="col-md-4 mb-3"><label class="form-label">Category</label>
+            <select class="form-select" name="category" required>
+                {% set cur = book.category if book else '' %}
+                {% for cat in categories %}<option value="{{ cat.name }}" {% if cur == cat.name %}selected{% endif %}>{{ cat.name }}</option>{% endfor %}
+                {% if cur and cur not in categories|map(attribute='name')|list %}<option selected>{{ cur }}</option>{% endif %}
+            </select></div>
+        <div class="col-md-4 mb-3"><label class="form-label">Shelf Location</label><input type="text" class="form-control" name="shelf_location" value="{{ book.shelf_location if book else '' }}" placeholder="B1-01"></div>
+        <div class="col-md-4 mb-3"><label class="form-label">Total Quantity</label><input type="number" class="form-control" name="total_qty" min="1" value="{{ book.total_qty if book else 1 }}" required></div>
+        <div class="col-md-4 mb-3"><label class="form-label">Book Status</label>
+            {% set st = book.book_status if book else 'Active' %}
+            <select class="form-select" name="book_status">
+                <option value="Active" {% if st=='Active' %}selected{% endif %}>Active</option>
+                <option value="Lost" {% if st=='Lost' %}selected{% endif %}>Lost</option>
+                <option value="Damaged" {% if st=='Damaged' %}selected{% endif %}>Damaged</option>
+                <option value="Under Repair" {% if st=='Under Repair' %}selected{% endif %}>Under Repair</option>
+            </select></div>
+    </div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3">{{ book.description if book else '' }}</textarea></div>
+    <div class="d-flex gap-2"><button type="submit" class="btn btn-primary">{{ 'Update' if book else 'Add' }} Book</button><a href="{{ url_for('books.list_books') }}" class="btn btn-secondary">Cancel</a></div>
+</form></div></div></div></div>
+{% endblock %}
+{% block scripts %}<script>document.getElementById('generateRfidBtn')?.addEventListener('click',()=>{document.getElementById('rfid_tag').value='BOOK-'+String(Math.floor(Math.random()*900)+100);});</script>{% endblock %}

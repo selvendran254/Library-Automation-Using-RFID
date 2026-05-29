@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Transactions{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between mb-4">
+    <h2><i class="bi bi-arrow-left-right me-2"></i>Transactions</h2>
+    <div class="btn-group btn-group-sm">
+        <a href="{{ url_for('transactions.issue_book') }}" class="btn btn-primary">Issue</a>
+        <a href="{{ url_for('transactions.bulk_issue') }}" class="btn btn-outline-primary">Bulk Issue</a>
+        <a href="{{ url_for('transactions.return_book') }}" class="btn btn-success">Return</a>
+        <a href="{{ url_for('admin.export_transactions') }}" class="btn btn-outline-secondary"><i class="bi bi-download"></i></a>
+    </div>
+</div>
+<div class="card mb-3"><div class="card-body py-2"><form method="GET" class="row g-2">
+    <div class="col-md-6"><select name="status" class="form-select form-select-sm"><option value="">All</option><option value="issued" {% if status_filter=='issued' %}selected{% endif %}>Issued</option><option value="overdue" {% if status_filter=='overdue' %}selected{% endif %}>Overdue</option><option value="returned" {% if status_filter=='returned' %}selected{% endif %}>Returned</option></select></div>
+    <div class="col-md-6"><button class="btn btn-primary btn-sm w-100">Filter</button></div>
+</form></div></div>
+<div class="card"><div class="card-body"><table class="table table-striped datatable">
+<thead><tr><th>ID</th><th>Receipt</th><th>Book</th><th>Member</th><th>Issue</th><th>Due</th><th>Return</th><th>Fine</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody>{% for t in transactions %}<tr>
+    <td>{{ t.id }}</td><td><code>{{ t.receipt_no or '-' }}</code></td>
+    <td>{{ t.book.title }}</td><td>{{ t.member.name }}</td>
+    <td>{{ t.issue_date.strftime('%d-%m-%Y') }}</td><td>{{ t.due_date.strftime('%d-%m-%Y') }}</td>
+    <td>{{ t.return_date.strftime('%d-%m-%Y') if t.return_date else '-' }}</td>
+    <td>{% if t.fine_amount %}₹{{ "%.0f"|format(t.fine_amount) }}{% if t.fine_paid %}<span class="badge bg-success">Paid</span>{% endif %}{% else %}-{% endif %}</td>
+    <td>{% if t.status=='Returned' %}<span class="badge bg-secondary">Returned</span>{% elif t.status=='Overdue' %}<span class="badge bg-danger">Overdue</span>{% else %}<span class="badge bg-primary">Issued</span>{% endif %}</td>
+    <td>
+        <a href="{{ url_for('transactions.receipt', transaction_id=t.id) }}" class="btn btn-sm btn-outline-secondary" title="Receipt"><i class="bi bi-receipt"></i></a>
+        {% if not t.return_date %}<form method="POST" action="{{ url_for('transactions.renew_book', transaction_id=t.id) }}" class="d-inline"><button class="btn btn-sm btn-outline-info" title="Renew"><i class="bi bi-arrow-repeat"></i></button></form>{% endif %}
+    </td>
+</tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}
+{% block scripts %}<script>$(document).ready(function(){ $('.datatable').DataTable({ order: [[0,'desc']] }); });</script>{% endblock %}

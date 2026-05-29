@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Renewal Requests{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2><i class="bi bi-arrow-repeat"></i> Membership Renewal Requests</h2>
+    <div class="btn-group btn-group-sm">
+        <a href="{{ url_for('members.list_renewal_requests', status='Pending') }}" class="btn btn-outline-primary {% if status_filter == 'Pending' %}active{% endif %}">Pending</a>
+        <a href="{{ url_for('members.list_renewal_requests', status='Approved') }}" class="btn btn-outline-success {% if status_filter == 'Approved' %}active{% endif %}">Approved</a>
+        <a href="{{ url_for('members.list_renewal_requests', status='Rejected') }}" class="btn btn-outline-secondary {% if status_filter == 'Rejected' %}active{% endif %}">Rejected</a>
+    </div>
+</div>
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>Member</th><th>Months</th><th>Notes</th><th>Requested</th><th></th></tr></thead>
+            <tbody>
+                {% for r in requests_list %}
+                <tr>
+                    <td><a href="{{ url_for('members.member_detail', member_id=r.member_id) }}">{{ r.member.name }}</a></td>
+                    <td>{{ r.months }}</td>
+                    <td class="small">{{ r.member_notes or '—' }}</td>
+                    <td class="small">{{ r.requested_at.strftime('%d-%m-%Y %I:%M %p') if r.requested_at else '—' }}</td>
+                    <td class="text-end">
+                        {% if r.status == 'Pending' %}
+                        <form method="POST" action="{{ url_for('members.approve_renewal_request', req_id=r.id) }}" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="btn btn-sm btn-success">Approve</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('members.reject_renewal_request', req_id=r.id) }}" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="btn btn-sm btn-outline-danger">Reject</button>
+                        </form>
+                        {% else %}
+                        <span class="badge bg-secondary">{{ r.status }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-muted text-center py-4">No requests.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

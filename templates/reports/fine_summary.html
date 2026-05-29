@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Fine Summary{% endblock %}
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-currency-rupee me-2"></i>Fine Collection Summary</h2>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card stat-card stat-fines"><div class="card-body">
+            <h6 class="text-muted">Pending Collection (Remaining)</h6>
+            <h2 class="text-danger">₹{{ "%.0f"|format(pending_total) }}</h2>
+        </div></div>
+    </div>
+    <div class="col-md-6">
+        <div class="card stat-card stat-members"><div class="card-body">
+            <h6 class="text-muted">Total Collected</h6>
+            <h2 class="text-success">₹{{ "%.0f"|format(paid_total) }}</h2>
+        </div></div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-danger text-white"><h5 class="mb-0"><i class="bi bi-exclamation-circle me-1"></i> Pending Fines (Not Paid)</h5></div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0 datatable">
+            <thead><tr><th>Member</th><th>Book</th><th>Return Date</th><th>Amount</th></tr></thead>
+            <tbody>
+                {% for fine in pending_fines %}
+                <tr>
+                    <td>{{ fine.member.name }}</td>
+                    <td>{{ fine.book.title }}</td>
+                    <td>{{ fine.return_date.strftime('%d-%m-%Y') if fine.return_date else '-' }}</td>
+                    <td class="text-danger fw-semibold">₹{{ "%.0f"|format(fine.fine_amount) }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="text-center text-muted py-4">No pending fines</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h5 class="mb-0"><i class="bi bi-check-circle me-1"></i> Paid Fines (History)</h5></div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0 datatable">
+            <thead><tr><th>Member</th><th>Book</th><th>Return Date</th><th>Amount</th></tr></thead>
+            <tbody>
+                {% for fine in paid_fines %}
+                <tr>
+                    <td>{{ fine.member.name }}</td>
+                    <td>{{ fine.book.title }}</td>
+                    <td>{{ fine.return_date.strftime('%d-%m-%Y') if fine.return_date else '-' }}</td>
+                    <td class="text-success">₹{{ "%.0f"|format(fine.fine_amount) }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="text-center text-muted py-4">No paid fines recorded</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}<script>$(document).ready(function(){ $('.datatable').DataTable(); });</script>{% endblock %}

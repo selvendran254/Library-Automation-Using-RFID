@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Search Members - Library RFID{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-person-search me-2"></i>Search Members</h2>
+
+<form method="GET" class="mb-4">
+    <div class="input-group">
+        <input type="text" class="form-control" name="q" value="{{ query }}" placeholder="Search by name, ID, RFID card...">
+        <button class="btn btn-primary" type="submit">Search</button>
+    </div>
+</form>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped datatable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>RFID Card</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Pending Fine</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member in members %}
+                    <tr>
+                        <td>{{ member.id }}</td>
+                        <td><code>{{ member.rfid_card }}</code></td>
+                        <td>{{ member.name }}</td>
+                        <td>{{ member.email }}</td>
+                        <td>{{ member.membership_type }}</td>
+                        <td>{{ member.status }}</td>
+                        <td>₹{{ "%.0f"|format(member.pending_fine) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() { $('.datatable').DataTable(); });
+</script>
+{% endblock %}

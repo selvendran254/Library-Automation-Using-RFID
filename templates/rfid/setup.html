@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}RFID Hardware Setup{% endblock %}
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-rfid me-2"></i>Real RFID Hardware Setup</h2>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card mb-4">
+            <div class="card-header">Reader Configuration</div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('rfid.save_rfid_setup') }}">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">RFID Mode</label>
+                        <select class="form-select" name="rfid_mode" id="rfidModeSelect">
+                            <option value="hid" {% if settings.mode=='hid' or settings.mode=='simulation' %}selected{% endif %}>HID — USB Keyboard Reader (Recommended)</option>
+                            <option value="serial" {% if settings.mode=='serial' %}selected{% endif %}>Serial — USB COM Port Reader</option>
+                        </select>
+                        <div class="form-text">Real USB RFID reader only — no simulation or mock scan.</div>
+                    </div>
+                    <div id="serialOptions" class="{% if settings.mode != 'serial' %}d-none{% endif %}">
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label class="form-label">Serial Port</label>
+                                <select class="form-select" name="rfid_serial_port" id="portSelect">
+                                    <option value="{{ settings.port }}">{{ settings.port }} (current)</option>
+                                    {% for p in ports %}
+                                    <option value="{{ p.device }}" {% if p.device==settings.port %}selected{% endif %}>{{ p.device }} — {{ p.description }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Baud Rate</label>
+                                <select class="form-select" name="rfid_baud_rate">
+                                    {% for b in [9600, 19200, 38400, 115200] %}
+                                    <option value="{{ b }}" {% if settings.baud|string==b|string %}selected{% endif %}>{{ b }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Strip Prefix</label>
+                            <input type="text" class="form-control" name="rfid_tag_prefix" value="{{ settings.prefix }}" placeholder="Optional">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Strip Suffix</label>
+                            <input type="text" class="form-control" name="rfid_tag_suffix" value="{{ settings.suffix }}" placeholder="Optional">
+                        </div>
+                    </div>
+                    <div class="mb-3" id="hidOptions">
+                        <label class="form-label">USB Device Keyword <span class="text-muted">(optional)</span></label>
+                        <input type="text" class="form-control" name="rfid_usb_keyword" value="{{ settings.usb_keyword }}" placeholder="e.g. em18, 1a86, your reader brand">
+                        <div class="form-text">Run <code>lsusb</code> in terminal — paste part of your reader name here if auto-detect fails.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle"></i> Save & Apply</button>
+                    <a href="{{ url_for('rfid.rfid_test') }}" class="btn btn-outline-success"><i class="bi bi-upc-scan"></i> Test Reader</a>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Live Connection</span>
+                <span class="badge bg-secondary" id="setupConnBadge">Checking...</span>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="rfid-status-dot checking" id="setupConnDot"></span>
+                    <strong id="setupConnLabel">Checking RFID hardware...</strong>
+                </div>
+                <p class="small text-muted mb-0" id="setupConnMessage">Detecting USB reader...</p>
+            </div>
+        </div>
+        <div class="card mb-3">
+            <div class="card-header">Reader Status</div>
+            <div class="card-body">
+                <p><strong>Mode:</strong> <span class="badge bg-primary">{{ status.mode|upper }}</span></p>
+                <p><strong>Port:</strong> {{ status.port or 'N/A' }}</p>
+                <p><strong>Baud:</strong> {{ status.baud }}</p>
+                <p><strong>Running:</strong>
+                    {% if status.running %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Stopped</span>{% endif %}
+                </p>
+                {% if status.error %}<div class="alert alert-danger small">{{ status.error }}</div>{% endif %}
+                {% if status.last_scan %}
+                <p class="small mb-0"><strong>Last Scan:</strong> <code>{{ status.last_scan.tag }}</code> ({{ status.last_scan.source }})</p>
+                {% endif %}
+                {% if settings.mode == 'serial' %}
+                <div class="d-flex gap-2 mt-3">
+                    <form method="POST" action="{{ url_for('rfid.start_reader') }}"><button class="btn btn-sm btn-success">Start Reader</button></form>
+                    <form method="POST" action="{{ url_for('rfid.stop_reader') }}"><button class="btn btn-sm btn-outline-danger">Stop</button></form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">How to Connect Real RFID</div>
+            <div class="card-body small">
+                <p><strong>Option 1 — HID Reader (Easy):</strong></p>
+                <ol><li>Plug USB RFID reader</li><li>Set mode = HID</li><li>Open Issue/Return page</li><li>Focus input field & scan tag</li></ol>
+                <p><strong>Option 2 — Serial Reader:</strong></p>
+                <ol><li>Plug USB serial RFID reader</li><li>Find port: <code>ls /dev/ttyUSB*</code></li><li>Set mode = Serial, select port</li><li>Click Start Reader</li></ol>
+                <p class="mb-0 text-muted">Tag format must match database: BOOK-001, MEM-CARD-001, etc.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function toggleRfidModeOptions() {
+    const mode = document.getElementById('rfidModeSelect')?.value;
+    document.getElementById('serialOptions')?.classList.toggle('d-none', mode !== 'serial');
+    document.getElementById('hidOptions')?.classList.toggle('d-none', mode === 'serial');
+}
+
+async function refreshSetupConnection() {
+    const badge = document.getElementById('setupConnBadge');
+    const dot = document.getElementById('setupConnDot');
+    const label = document.getElementById('setupConnLabel');
+    const message = document.getElementById('setupConnMessage');
+    if (!badge) return;
+
+    try {
+        const res = await fetch('/rfid/api/connection-status');
+        const data = await res.json();
+        const state = data.connected ? 'connected' : 'not-connected';
+
+        badge.className = `badge ${data.connected ? 'bg-success' : 'bg-danger'}`;
+        badge.textContent = data.label;
+        dot.className = `rfid-status-dot ${state}`;
+        label.textContent = data.label + (data.mode ? ` (${data.mode.toUpperCase()})` : '');
+        message.textContent = data.message || '';
+    } catch {
+        badge.className = 'badge bg-warning text-dark';
+        badge.textContent = 'Error';
+        dot.className = 'rfid-status-dot not-connected';
+        label.textContent = 'Not Connected';
+        message.textContent = 'Could not check RFID connection.';
+    }
+}
+
+document.getElementById('rfidModeSelect')?.addEventListener('change', toggleRfidModeOptions);
+toggleRfidModeOptions();
+refreshSetupConnection();
+setInterval(refreshSetupConnection, 2500);
+</script>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Reservations{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between mb-4">
+    <h2><i class="bi bi-bookmark-star me-2"></i>Book Reservations</h2>
+    <a href="{{ url_for('reservations.add_reservation') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus"></i> New Reservation</a>
+</div>
+<div class="card mb-3"><div class="card-body py-2"><form method="GET" class="row g-2">
+    <div class="col-md-6"><select name="status" class="form-select form-select-sm"><option value="">All Status</option><option value="Pending" {% if status_filter=='Pending' %}selected{% endif %}>Pending</option><option value="Fulfilled" {% if status_filter=='Fulfilled' %}selected{% endif %}>Fulfilled</option><option value="Cancelled" {% if status_filter=='Cancelled' %}selected{% endif %}>Cancelled</option></select></div>
+    <div class="col-md-6"><button class="btn btn-primary btn-sm w-100">Filter</button></div>
+</form></div></div>
+<div class="card"><div class="card-body"><table class="table table-striped datatable">
+<thead><tr><th>ID</th><th>Book</th><th>Member</th><th>Reserved</th><th>Expires</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody>{% for r in reservations %}<tr>
+    <td>{{ r.id }}</td><td>{{ r.book.title }}</td><td>{{ r.member.name }}</td>
+    <td>{{ r.reserved_date.strftime('%d-%m-%Y') }}</td><td>{{ r.expiry_date.strftime('%d-%m-%Y') }}</td>
+    <td><span class="badge {% if r.status=='Pending' %}bg-warning text-dark{% elif r.status=='Fulfilled' %}bg-success{% else %}bg-secondary{% endif %}">{{ r.status }}</span></td>
+    <td>{% if r.status=='Pending' %}
+        <form method="POST" action="{{ url_for('reservations.fulfill_reservation', res_id=r.id) }}" class="d-inline"><button class="btn btn-sm btn-success">Fulfill</button></form>
+        <form method="POST" action="{{ url_for('reservations.cancel_reservation', res_id=r.id) }}" class="d-inline"><button class="btn btn-sm btn-outline-danger">Cancel</button></form>
+    {% endif %}</td>
+</tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}
+{% block scripts %}<script>$(document).ready(function(){ $('.datatable').DataTable(); });</script>{% endblock %}

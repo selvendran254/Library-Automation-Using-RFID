@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Search Books - Library RFID{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-search me-2"></i>Search Books</h2>
+
+<form method="GET" class="mb-4">
+    <div class="input-group">
+        <input type="text" class="form-control" name="q" value="{{ query }}" placeholder="Search by title, author, category, RFID tag...">
+        <button class="btn btn-primary" type="submit">Search</button>
+    </div>
+</form>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped datatable">
+                <thead>
+                    <tr>
+                        <th>RFID Tag</th>
+                        <th>Title</th>
+                        <th>Author</th>
+                        <th>Category</th>
+                        <th>Available</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for book in books %}
+                    <tr>
+                        <td><code>{{ book.rfid_tag }}</code></td>
+                        <td>{{ book.title }}</td>
+                        <td>{{ book.author }}</td>
+                        <td>{{ book.category }}</td>
+                        <td>{{ book.available_qty }} / {{ book.total_qty }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() { $('.datatable').DataTable(); });
+</script>
+{% endblock %}

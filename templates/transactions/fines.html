@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Fines - Library RFID{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-currency-rupee me-2"></i>Fine Management</h2>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped datatable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Member</th>
+                        <th>Book</th>
+                        <th>Return Date</th>
+                        <th>Fine Amount</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fine in fines %}
+                    <tr>
+                        <td>{{ fine.id }}</td>
+                        <td>{{ fine.member.name }}</td>
+                        <td>{{ fine.book.title }}</td>
+                        <td>{{ fine.return_date.strftime('%d-%m-%Y') if fine.return_date else '-' }}</td>
+                        <td class="fw-bold">₹{{ "%.0f"|format(fine.fine_amount) }}</td>
+                        <td>
+                            {% if fine.fine_paid %}
+                                <span class="badge bg-success">Paid</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if not fine.fine_paid %}
+                            <form action="{{ url_for('transactions.pay_fine', transaction_id=fine.id) }}" method="POST">
+                                <button type="submit" class="btn btn-sm btn-success">
+                                    <i class="bi bi-check2-circle me-1"></i>Mark Paid
+                                </button>
+                            </form>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="7" class="text-center text-muted">No fines recorded</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    $('.datatable').DataTable({ order: [[3, 'desc']] });
+});
+</script>
+{% endblock %}

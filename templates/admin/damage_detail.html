@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Damage Report #{{ report.id }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <a href="{{ url_for('damage_reports.list_reports') }}" class="btn btn-outline-secondary btn-sm mb-2"><i class="bi bi-arrow-left"></i> All Reports</a>
+        <h2>Damage Report #{{ report.id }}</h2>
+        <span class="badge {% if report.status == 'Pending' %}bg-danger{% elif report.status == 'Reviewed' %}bg-warning text-dark{% else %}bg-success{% endif %}">{{ report.status }}</span>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">Damage Photo</div>
+            <div class="card-body text-center p-2">
+                <img src="{{ url_for('static', filename=report.photo_path) }}" alt="Damage" class="damage-detail-photo img-fluid rounded">
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card mb-3">
+            <div class="card-header">Book Details</div>
+            <div class="card-body">
+                <h5>{{ report.book.title }}</h5>
+                <p class="mb-1"><strong>Author:</strong> {{ report.book.author }}</p>
+                <p class="mb-1"><strong>RFID:</strong> <code>{{ report.book.rfid_tag }}</code></p>
+                <p class="mb-1"><strong>Category:</strong> {{ report.book.category }}</p>
+                <p class="mb-0"><strong>Shelf:</strong> {{ report.book.shelf_location or 'N/A' }}</p>
+            </div>
+        </div>
+        <div class="card mb-3">
+            <div class="card-header">Member Details</div>
+            <div class="card-body">
+                <p class="mb-1"><strong>Name:</strong> {{ report.member.name }}</p>
+                <p class="mb-1"><strong>Email:</strong> {{ report.member.email }}</p>
+                <p class="mb-1"><strong>Phone:</strong> {{ report.member.phone }}</p>
+                <p class="mb-1"><strong>Card:</strong> <code>{{ report.member.rfid_card }}</code></p>
+                <p class="mb-0"><a href="{{ url_for('members.member_detail', member_id=report.member.id) }}" class="btn btn-sm btn-outline-primary mt-2">View Member Profile</a></p>
+            </div>
+        </div>
+        <div class="card mb-3">
+            <div class="card-header">Report Info</div>
+            <div class="card-body">
+                <p class="mb-1"><strong>Damage Type:</strong> <span class="badge bg-danger">{{ report.damage_type }}</span></p>
+                <p class="mb-1"><strong>Reported:</strong> {{ report.created_at.strftime('%d-%m-%Y %I:%M %p') }}</p>
+                {% if report.transaction %}
+                <p class="mb-1"><strong>Issue Date:</strong> {{ report.transaction.issue_date.strftime('%d-%m-%Y') }}</p>
+                <p class="mb-1"><strong>Due Date:</strong> {{ report.transaction.due_date.strftime('%d-%m-%Y') }}</p>
+                {% endif %}
+                {% if report.description %}
+                <hr>
+                <p class="mb-0"><strong>Member Notes:</strong><br>{{ report.description }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% if report.status != 'Resolved' %}
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-chat-dots me-1"></i> Send Message to Member</div>
+            <div class="card-body">
+                <p class="small text-muted">This message will appear on the member's portal dashboard.</p>
+                <form method="POST" action="{{ url_for('damage_reports.send_member_message', report_id=report.id) }}">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Message to Member</label>
+                        <textarea name="member_message" class="form-control" rows="4" placeholder="e.g. We received your damage report. Please visit the library office..." required>{{ report.member_message or '' }}</textarea>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="send_sms" value="1" id="sendSmsCheck" checked>
+                        <label class="form-check-label" for="sendSmsCheck">Also send SMS to {{ report.member.phone }}</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100"><i class="bi bi-send me-1"></i> Send Message to Member</button>
+                </form>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">Admin Action</div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('damage_reports.resolve_report', report_id=report.id) }}">
+                    <div class="mb-3">
+                        <label class="form-label">Admin Notes (internal only)</label>
+                        <textarea name="admin_notes" class="form-control" rows="2" placeholder="Internal notes — member cannot see this...">{{ report.admin_notes or '' }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Optional message while resolving</label>
+                        <textarea name="member_message" class="form-control" rows="3" placeholder="Message to member when marking reviewed/resolved..."></textarea>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="send_sms" value="1" id="resolveSmsCheck">
+                        <label class="form-check-label" for="resolveSmsCheck">Send SMS if message added</label>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" name="action" value="Reviewed" class="btn btn-warning"><i class="bi bi-eye"></i> Mark Reviewed</button>
+                        <button type="submit" name="action" value="Resolved" class="btn btn-success"><i class="bi bi-check-circle"></i> Mark Resolved</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        {% if report.member_message %}
+        <div class="card mb-3 border-primary">
+            <div class="card-header bg-primary text-white"><i class="bi bi-check2-circle me-1"></i> Message Sent to Member</div>
+            <div class="card-body">
+                <p class="mb-1">{{ report.member_message }}</p>
+                {% if report.member_message_at %}
+                <small class="text-muted">Sent {{ report.member_message_at.strftime('%d-%m-%Y %I:%M %p') }}</small>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        {% if report.admin_notes %}
+        <div class="card mb-3">
+            <div class="card-header">Admin Notes</div>
+            <div class="card-body">{{ report.admin_notes }}</div>
+        </div>
+        {% endif %}
+        <div class="card">
+            <div class="card-header"><i class="bi bi-chat-dots me-1"></i> Send Another Message</div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('damage_reports.send_member_message', report_id=report.id) }}">
+                    <div class="mb-3">
+                        <textarea name="member_message" class="form-control" rows="3" placeholder="Send update to member..." required></textarea>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="send_sms" value="1" checked>
+                        <label class="form-check-label">Also send SMS</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100"><i class="bi bi-send"></i> Send Message</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

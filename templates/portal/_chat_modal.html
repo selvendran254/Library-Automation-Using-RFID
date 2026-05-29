@@ -1,0 +1,134 @@
+<div class="portal-chat-overlay" id="portalChatOverlay" hidden aria-hidden="true">
+    <div class="portal-chat-panel" role="dialog" aria-labelledby="portalChatTitle">
+        <header class="portal-chat-head">
+            <button type="button" class="portal-chat-back" id="portalChatClose" aria-label="Close chat">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            <div class="portal-chat-head-text">
+                <h3 id="portalChatTitle">Chat</h3>
+                <span class="portal-chat-sub" id="portalChatStatus"></span>
+            </div>
+        </header>
+        <div class="portal-chat-body" id="portalChatMessages">
+            <div class="portal-chat-loading"><i class="bi bi-hourglass-split"></i> Loading…</div>
+        </div>
+        <footer class="portal-chat-compose">
+            <form id="portalChatForm">
+                <input type="text" id="portalChatInput" placeholder="Type a message…" autocomplete="off" maxlength="2000" required>
+                <button type="submit" class="portal-chat-send" aria-label="Send">
+                    <i class="bi bi-send-fill"></i>
+                </button>
+            </form>
+        </footer>
+    </div>
+</div>
+
+<script>
+(function () {
+    var overlay = document.getElementById('portalChatOverlay');
+    if (!overlay) return;
+
+    var closeBtn = document.getElementById('portalChatClose');
+    var titleEl = document.getElementById('portalChatTitle');
+    var statusEl = document.getElementById('portalChatStatus');
+    var messagesEl = document.getElementById('portalChatMessages');
+    var form = document.getElementById('portalChatForm');
+    var input = document.getElementById('portalChatInput');
+    var activeThreadId = null;
+
+    function renderMessages(messages) {
+        if (!messages || !messages.length) {
+            messagesEl.innerHTML = '<div class="portal-chat-empty">No messages yet. Say hello!</div>';
+            return;
+        }
+        messagesEl.innerHTML = messages.map(function (m) {
+            var cls = m.sender === 'admin' ? 'is-admin' : 'is-member';
+            var label = m.sender === 'admin' ? 'Library Admin' : 'You';
+            return '<div class="portal-chat-bubble ' + cls + '">' +
+                '<span class="portal-chat-sender">' + label + '</span>' +
+                '<p>' + escapeHtml(m.body) + '</p>' +
+                '<time>' + escapeHtml(m.at) + '</time>' +
+                '</div>';
+        }).join('');
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+        var d = document.createElement('div');
+        d.textContent = text;
+        return d.innerHTML;
+    }
+
+    function openChat(threadId, subject) {
+        activeThreadId = threadId;
+        titleEl.textContent = subject || 'Chat';
+        statusEl.textContent = '';
+        messagesEl.innerHTML = '<div class="portal-chat-loading"><i class="bi bi-hourglass-split"></i> Loading…</div>';
+        overlay.hidden = false;
+        overlay.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('portal-chat-open');
+        input.focus();
+
+        fetch('/portal/api/threads/' + threadId)
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.status) statusEl.textContent = data.status;
+                renderMessages(data.messages);
+                var btn = document.querySelector('[data-thread-id="' + threadId + '"]');
+                if (btn) btn.classList.remove('is-unread');
+            })
+            .catch(function () {
+                messagesEl.innerHTML = '<div class="portal-chat-empty">Could not load chat.</div>';
+            });
+    }
+
+    function closeChat() {
+        overlay.hidden = true;
+        overlay.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('portal-chat-open');
+        activeThreadId = null;
+    }
+
+    document.querySelectorAll('.portal-thread-item').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            openChat(btn.getAttribute('data-thread-id'), btn.getAttribute('data-thread-subject'));
+        });
+    });
+
+    closeBtn.addEventListener('click', closeChat);
+    overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) closeChat();
+    });
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!activeThreadId) return;
+        var body = input.value.trim();
+        if (!body) return;
+
+        var sendBtn = form.querySelector('.portal-chat-send');
+        sendBtn.disabled = true;
+
+        fetch('/portal/api/threads/' + activeThreadId + '/reply', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': window.portalCsrfToken || ''
+            },
+            body: JSON.stringify({ body: body })
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.messages) renderMessages(data.messages);
+                input.value = '';
+            })
+            .catch(function () {
+                alert('Could not send message. Try again.');
+            })
+            .finally(function () {
+                sendBtn.disabled = false;
+                input.focus();
+            });
+    });
+})();
+</script>

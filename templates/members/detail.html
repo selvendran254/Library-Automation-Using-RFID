@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}{{ member.name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between mb-4">
+    <div><h2>{{ member.name }}</h2><p class="text-muted"><code>{{ member.rfid_card }}</code> — {{ member.membership_type }}</p></div>
+    <div class="btn-group">
+        <a href="{{ url_for('members.print_card', member_id=member.id) }}" class="btn btn-outline-info btn-sm" target="_blank"><i class="bi bi-credit-card"></i> Print Card</a>
+        <a href="{{ url_for('members.edit_member', member_id=member.id) }}" class="btn btn-primary btn-sm">Edit</a>
+        <a href="{{ url_for('members.list_members') }}" class="btn btn-secondary btn-sm">Back</a>
+    </div>
+</div>
+<div class="row g-4 mb-4">
+    <div class="col-md-3"><div class="card text-center p-3"><h6 class="text-muted">Active Books</h6><h3>{{ member.active_books_count }}/{{ max_books }}</h3></div></div>
+    <div class="col-md-3"><div class="card text-center p-3"><h6 class="text-muted">Pending Fine</h6><h3 class="text-danger">₹{{ "%.0f"|format(member.pending_fine) }}</h3></div></div>
+    <div class="col-md-3"><div class="card text-center p-3"><h6 class="text-muted">Status</h6><h3>{{ member.status }}</h3></div></div>
+    <div class="col-md-3"><div class="card text-center p-3"><h6 class="text-muted">Expiry</h6><h3>{% if member.expiry_date %}{{ member.expiry_date.strftime('%d-%m-%Y') }}{% else %}N/A{% endif %}</h3></div></div>
+</div>
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card mb-3"><div class="card-header">Contact</div><div class="card-body">
+            <p><i class="bi bi-envelope"></i> {{ member.email }}</p>
+            <p><i class="bi bi-phone"></i> {{ member.phone }}</p>
+            <p><i class="bi bi-geo-alt"></i> {{ member.address or 'No address' }}</p>
+            <p><i class="bi bi-calendar"></i> Joined: {{ member.join_date.strftime('%d-%m-%Y') }}</p>
+            {% if member.notes %}<p class="small text-muted">{{ member.notes }}</p>{% endif %}
+        </div></div>
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-person-lines-fill"></i> Member Portal Link</div>
+            <div class="card-body">
+                <p class="small text-muted">Generate a link for this member. They open it and login with their email to see books, history, and return dates.</p>
+                <div class="d-grid gap-2">
+                    <form method="POST" action="{{ url_for('members.generate_portal_link', member_id=member.id) }}">
+                        <button class="btn btn-primary btn-sm" type="submit"><i class="bi bi-link-45deg"></i> Generate Link</button>
+                    </form>
+                    {% if display_link %}
+                    <div class="input-group input-group-sm">
+                        <input type="text" class="form-control font-monospace" id="memberPortalLink" value="{{ display_link }}" readonly>
+                        <button class="btn btn-outline-secondary" type="button" id="copyMemberPortalLink"><i class="bi bi-clipboard"></i></button>
+                    </div>
+                    <form method="POST" action="{{ url_for('members.send_portal_sms', member_id=member.id) }}">
+                        <button class="btn btn-success btn-sm" type="submit"><i class="bi bi-phone"></i> Send via SMS</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('members.revoke_portal_link', member_id=member.id) }}">
+                        <button class="btn btn-outline-danger btn-sm" type="submit"><i class="bi bi-x-circle"></i> Revoke Access</button>
+                    </form>
+                    {% if member.portal_token_expires %}
+                    <small class="text-muted">Link valid until {{ member.portal_token_expires.strftime('%d-%m-%Y') }}</small>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-chat-dots"></i> Send Portal Message</div>
+            <div class="card-body">
+                <p class="small text-muted mb-2">Starts a new chat thread in the member portal <strong>Messages</strong> section.</p>
+                <form method="POST" action="{{ url_for('members.send_portal_message', member_id=member.id) }}">
+                    <div class="mb-2">
+                        <input type="text" name="subject" class="form-control form-control-sm" placeholder="Subject (optional)" maxlength="150">
+                    </div>
+                    <div class="mb-2">
+                        <textarea name="message" class="form-control form-control-sm" rows="3" placeholder="Write your message to the member..." required></textarea>
+                    </div>
+                    <button class="btn btn-primary btn-sm w-100" type="submit"><i class="bi bi-send"></i> Start New Chat</button>
+                </form>
+            </div>
+        </div>
+        {% if portal_threads %}
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-chat-left-text"></i> Portal Chats</span>
+                {% set unread = portal_threads|selectattr('admin_unread')|list|length %}
+                {% if unread %}<span class="badge bg-danger">{{ unread }} new</span>{% endif %}
+            </div>
+            <div class="card-body p-0">
+                {% for thread in portal_threads %}
+                <div class="border-bottom p-2 {% if thread.admin_unread %}bg-light{% endif %}">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <strong class="small">{{ thread.subject }}</strong>
+                        <small class="text-muted">{{ thread.updated_at.strftime('%d %b %I:%M %p') if thread.updated_at else '' }}</small>
+                    </div>
+                    {% set last = thread.messages[-1] if thread.messages else none %}
+                    {% if last %}
+                    <p class="small text-muted mb-2">{{ last.sender|capitalize }}: {{ last.body[:60] }}{% if last.body|length > 60 %}…{% endif %}</p>
+                    {% endif %}
+                    <form method="POST" action="{{ url_for('members.reply_portal_thread', member_id=member.id, thread_id=thread.id) }}">
+                        <div class="input-group input-group-sm">
+                            <input type="text" name="message" class="form-control" placeholder="Reply in chat…" required>
+                            <button class="btn btn-outline-primary" type="submit"><i class="bi bi-send"></i></button>
+                        </div>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        <div class="card"><div class="card-header">Actions</div><div class="card-body d-grid gap-2">
+            <form method="POST" action="{{ url_for('members.renew_membership', member_id=member.id) }}">
+                <div class="input-group input-group-sm"><select name="months" class="form-select"><option value="6">6 months</option><option value="12" selected>12 months</option><option value="24">24 months</option></select>
+                <button class="btn btn-success">Renew</button></div></form>
+            {% if member.pending_fine > 0 %}
+            <form method="POST" action="{{ url_for('transactions.pay_all_fines', member_id=member.id) }}"><button class="btn btn-warning btn-sm">Pay All Fines (₹{{ "%.0f"|format(member.pending_fine) }})</button></form>
+            {% endif %}
+            {% if member.status == 'Active' %}
+            <form method="POST" action="{{ url_for('members.suspend_member', member_id=member.id) }}"><input type="hidden" name="reason" value="Manual suspension"><button class="btn btn-outline-danger btn-sm">Suspend Member</button></form>
+            {% endif %}
+        </div></div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-journal-bookmark me-1"></i> Books Taken Now ({{ active|length }})</span>
+                {% if active %}<span class="badge bg-primary">Currently Issued</span>{% endif %}
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0 table-hover">
+                    <thead>
+                        <tr>
+                            <th>Book</th>
+                            <th>RFID Tag</th>
+                            <th>Issued</th>
+                            <th>Due</th>
+                            <th>Renewals</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in active %}
+                        <tr>
+                            <td>
+                                <strong>{{ t.book.title }}</strong>
+                                <br><small class="text-muted">{{ t.book.author }}</small>
+                            </td>
+                            <td><code>{{ t.book.rfid_tag }}</code></td>
+                            <td>{{ t.issue_date.strftime('%d-%m-%Y') }}</td>
+                            <td>
+                                {{ t.due_date.strftime('%d-%m-%Y') }}
+                                {% if t.is_overdue %}<span class="badge bg-danger">Overdue</span>{% endif %}
+                            </td>
+                            <td>{{ t.renewal_count }}</td>
+                            <td>
+                                <form method="POST" action="{{ url_for('transactions.renew_book', transaction_id=t.id) }}" class="d-inline">
+                                    <button class="btn btn-sm btn-outline-info" type="submit"><i class="bi bi-arrow-repeat"></i> Renew</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="text-center text-muted py-4">No books taken — member has returned all books</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card"><div class="card-header">Full History</div><div class="card-body p-0">
+            <table class="table mb-0 datatable"><thead><tr><th>Book</th><th>Issue</th><th>Due</th><th>Return</th><th>Fine</th></tr></thead>
+            <tbody>{% for t in history %}<tr><td>{{ t.book.title }}</td><td>{{ t.issue_date.strftime('%d-%m-%Y') }}</td><td>{{ t.due_date.strftime('%d-%m-%Y') }}</td><td>{{ t.return_date.strftime('%d-%m-%Y') if t.return_date else '-' }}</td><td>{% if t.fine_amount %}₹{{ "%.0f"|format(t.fine_amount) }}{% else %}-{% endif %}</td></tr>{% endfor %}</tbody></table>
+        </div></div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+$(document).ready(function(){ $('.datatable').DataTable({ order: [[1,'desc']] }); });
+document.getElementById('copyMemberPortalLink')?.addEventListener('click', function () {
+    var input = document.getElementById('memberPortalLink');
+    input.select();
+    navigator.clipboard.writeText(input.value);
+});
+</script>
+{% endblock %}

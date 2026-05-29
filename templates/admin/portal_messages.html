@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Member Messages{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="mb-0"><i class="bi bi-chat-left-text"></i> Member Portal Messages</h4>
+        <p class="text-muted small mb-0">Member replies and chats from the portal — click to open conversation</p>
+    </div>
+    {% if unread_count %}
+    <span class="badge bg-danger fs-6">{{ unread_count }} new</span>
+    {% endif %}
+</div>
+
+<div class="admin-chat-layout">
+    <aside class="admin-chat-list card">
+        <div class="card-header py-2"><strong>Conversations ({{ threads|length }})</strong></div>
+        <div class="list-group list-group-flush admin-chat-list-body">
+            {% for t in threads %}
+            <button type="button"
+                    class="list-group-item list-group-item-action admin-chat-thread {% if t.admin_unread %}is-unread{% endif %} {% if selected_thread_id == t.id %}active{% endif %}"
+                    data-thread-id="{{ t.id }}"
+                    data-thread-subject="{{ t.subject|e }}"
+                    data-member-name="{{ t.member_name|e }}">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <strong class="small">{{ t.member_name }}</strong>
+                    {% if t.admin_unread %}<span class="badge bg-danger">New</span>{% endif %}
+                </div>
+                <div class="small fw-semibold text-truncate">{{ t.subject }}</div>
+                <div class="small text-muted text-truncate">
+                    {% if t.last_sender == 'member' %}<i class="bi bi-person"></i>{% else %}<i class="bi bi-person-badge"></i>{% endif %}
+                    {{ t.last_preview or 'Open chat' }}
+                </div>
+                <small class="text-muted">{{ t.updated_at.strftime('%d %b, %I:%M %p') if t.updated_at else '' }}</small>
+            </button>
+            {% else %}
+            <div class="p-3 text-muted small">No portal messages yet.</div>
+            {% endfor %}
+        </div>
+    </aside>
+
+    <section class="admin-chat-panel card">
+        <div class="admin-chat-panel-empty" id="adminChatEmpty">
+            <i class="bi bi-chat-dots display-4 text-muted"></i>
+            <p class="text-muted mb-0">Select a conversation to open chat</p>
+        </div>
+        <div class="admin-chat-panel-active" id="adminChatActive" hidden>
+            <div class="card-header admin-chat-head">
+                <div>
+                    <strong id="adminChatMember"></strong>
+                    <div class="small text-muted" id="adminChatSubject"></div>
+                </div>
+                <a href="#" class="btn btn-sm btn-outline-primary" id="adminChatMemberLink">View member</a>
+            </div>
+            <div class="admin-chat-messages" id="adminChatMessages"></div>
+            <div class="card-footer admin-chat-compose">
+                <form id="adminChatForm" class="d-flex gap-2">
+                    <input type="text" class="form-control" id="adminChatInput" placeholder="Type reply to member…" maxlength="2000" required autocomplete="off">
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-send-fill"></i></button>
+                </form>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var emptyEl = document.getElementById('adminChatEmpty');
+    var activeEl = document.getElementById('adminChatActive');
+    var memberEl = document.getElementById('adminChatMember');
+    var subjectEl = document.getElementById('adminChatSubject');
+    var memberLink = document.getElementById('adminChatMemberLink');
+    var messagesEl = document.getElementById('adminChatMessages');
+    var form = document.getElementById('adminChatForm');
+    var input = document.getElementById('adminChatInput');
+    var activeThreadId = null;
+    var activeMemberId = null;
+
+    function escapeHtml(text) {
+        var d = document.createElement('div');
+        d.textContent = text;
+        return d.innerHTML;
+    }
+
+    function renderMessages(messages) {
+        messagesEl.innerHTML = messages.map(function (m) {
+            var cls = m.sender === 'admin' ? 'is-admin' : 'is-member';
+            var label = m.sender === 'admin' ? 'You (Library)' : 'Member';
+            return '<div class="portal-chat-bubble ' + cls + '">' +
+                '<span class="portal-chat-sender">' + label + '</span>' +
+                '<p>' + escapeHtml(m.body) + '</p>' +
+                '<time>' + escapeHtml(m.at) + '</time></div>';
+        }).join('');
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function openThread(threadId, subject, memberName) {
+        activeThreadId = threadId;
+        emptyEl.hidden = true;
+        activeEl.hidden = false;
+        memberEl.textContent = memberName || 'Member';
+        subjectEl.textContent = subject || '';
+        messagesEl.innerHTML = '<div class="portal-chat-loading">Loading…</div>';
+
+        document.querySelectorAll('.admin-chat-thread').forEach(function (btn) {
+            btn.classList.toggle('active', btn.getAttribute('data-thread-id') === String(threadId));
+            if (btn.getAttribute('data-thread-id') === String(threadId)) {
+                btn.classList.remove('is-unread');
+                var badge = btn.querySelector('.badge.bg-danger');
+                if (badge) badge.remove();
+            }
+        });
+
+        fetch('/admin/portal-messages/api/threads/' + threadId)
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                activeMemberId = data.member_id;
+                memberLink.href = '/members/' + data.member_id;
+                if (data.status) subjectEl.textContent = (subject || '') + ' · ' + data.status;
+                renderMessages(data.messages || []);
+                input.focus();
+            });
+    }
+
+    document.querySelectorAll('.admin-chat-thread').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            openThread(
+                btn.getAttribute('data-thread-id'),
+                btn.getAttribute('data-thread-subject'),
+                btn.getAttribute('data-member-name')
+            );
+        });
+    });
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!activeThreadId) return;
+        var body = input.value.trim();
+        if (!body) return;
+        fetch('/admin/portal-messages/api/threads/' + activeThreadId + '/reply', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ body: body })
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.messages) renderMessages(data.messages);
+                input.value = '';
+            });
+    });
+
+    var preselect = {{ selected_thread_id or 'null' }};
+    if (preselect) {
+        var btn = document.querySelector('[data-thread-id="' + preselect + '"]');
+        if (btn) btn.click();
+    }
+})();
+</script>
+{% endblock %}

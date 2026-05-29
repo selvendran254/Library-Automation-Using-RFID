@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Issued Books - Library RFID{% endblock %}
+
+{% block content %}
+<h2 class="mb-1"><i class="bi bi-box-arrow-right me-2"></i>Currently Issued Books</h2>
+<p class="text-muted mb-4">Return pannatha books — all active issues (not yet returned)</p>
+
+<div class="card mb-3">
+    <div class="card-body py-2 d-flex justify-content-between align-items-center">
+        <span><strong>{{ issued_rows|length }}</strong> book(s) not returned</span>
+        <a href="{{ url_for('reports.export_current_status') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-download"></i> Export CSV</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped datatable">
+                <thead>
+                    <tr>
+                        <th>Book</th>
+                        <th>RFID Tag</th>
+                        <th>Member</th>
+                        <th>Phone</th>
+                        <th>Issue Date</th>
+                        <th>Due Date</th>
+                        <th>Days Left / Overdue</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in issued_rows %}
+                    {% set txn = row.transaction %}
+                    <tr>
+                        <td>{{ txn.book.title }}</td>
+                        <td><code>{{ txn.book.rfid_tag }}</code></td>
+                        <td>{{ txn.member.name }}</td>
+                        <td>{{ txn.member.phone }}</td>
+                        <td>{{ txn.issue_date.strftime('%d-%m-%Y') }}</td>
+                        <td>{{ txn.due_date.strftime('%d-%m-%Y') }}</td>
+                        <td>
+                            {% if row.days_left < 0 %}
+                                <span class="text-danger fw-bold">{{ row.days_left * -1 }} days overdue</span>
+                            {% elif row.days_left == 0 %}
+                                <span class="text-warning fw-bold">Due today</span>
+                            {% else %}
+                                {{ row.days_left }} days
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="7" class="text-center text-muted">No books currently issued — all returned</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() { $('.datatable').DataTable(); });
+</script>
+{% endblock %}

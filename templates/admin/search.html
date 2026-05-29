@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Search{% endblock %}
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-search me-2"></i>Global Search</h2>
+<form method="GET" class="mb-4"><div class="input-group input-group-lg"><input type="text" class="form-control" name="q" value="{{ q }}" placeholder="Search books, members, transactions..." autofocus><button class="btn btn-primary">Search</button></div></form>
+{% if q %}
+<div class="row g-4">
+    <div class="col-lg-4"><div class="card"><div class="card-header">Books ({{ books|length }})</div><div class="card-body p-0"><ul class="list-group list-group-flush">{% for b in books %}<li class="list-group-item"><a href="{{ url_for('books.book_detail', book_id=b.id) }}">{{ b.title }}</a><br><small><code>{{ b.rfid_tag }}</code> — {{ b.author }}</small></li>{% else %}<li class="list-group-item text-muted">No books found</li>{% endfor %}</ul></div></div></div>
+    <div class="col-lg-4"><div class="card"><div class="card-header">Members ({{ members|length }})</div><div class="card-body p-0"><ul class="list-group list-group-flush">{% for m in members %}<li class="list-group-item"><a href="{{ url_for('members.member_detail', member_id=m.id) }}">{{ m.name }}</a><br><small><code>{{ m.rfid_card }}</code> — {{ m.email }}</small></li>{% else %}<li class="list-group-item text-muted">No members found</li>{% endfor %}</ul></div></div></div>
+    <div class="col-lg-4"><div class="card"><div class="card-header">Transactions ({{ transactions|length }})</div><div class="card-body p-0"><ul class="list-group list-group-flush">{% for t in transactions %}<li class="list-group-item">{{ t.book.title }} → {{ t.member.name }}<br><small>{{ t.issue_date.strftime('%d-%m-%Y') }} — {{ t.status }}</small></li>{% else %}<li class="list-group-item text-muted">No transactions found</li>{% endfor %}</ul></div></div></div>
+</div>
+{% endif %}
+{% endblock %}

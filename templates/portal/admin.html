@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Member Portal Access{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-person-lines-fill"></i> Member Portal</h2>
+        <p class="text-muted mb-0">Select a member, generate a login link, and send it to them. They login with their registered email to see books, history, and return dates.</p>
+    </div>
+    <a href="{{ url_for('member_portal.login_page') }}" class="btn btn-outline-primary btn-sm" target="_blank"><i class="bi bi-box-arrow-up-right"></i> Preview Portal</a>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header">Select Member</div>
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('member_portal.admin_home') }}">
+                    <div class="mb-3">
+                        <label class="form-label">Member</label>
+                        <select name="member_id" class="form-select" required onchange="this.form.submit()">
+                            <option value="">— Choose member —</option>
+                            {% for m in members %}
+                            <option value="{{ m.id }}" {% if selected and selected.id == m.id %}selected{% endif %}>
+                                {{ m.name }} ({{ m.email }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+
+                {% if selected %}
+                <div class="portal-admin-member-preview">
+                    <h6 class="portal-admin-member-name">{{ selected.name }}</h6>
+                    <p class="small mb-1"><i class="bi bi-envelope"></i> {{ selected.email }}</p>
+                    <p class="small mb-1"><i class="bi bi-phone"></i> {{ selected.phone }}</p>
+                    <p class="small mb-0"><i class="bi bi-journal-bookmark"></i> Active books: {{ selected.active_books_count }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        {% if selected %}
+        <div class="card mb-3">
+            <div class="card-header">Generate & Share Link</div>
+            <div class="card-body">
+                <p class="text-muted">Member opens this link, enters their email, and sees their full account — borrowed books, history, return due dates, fines, and membership details.</p>
+
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    <form method="POST" action="{{ url_for('member_portal.admin_generate_link', member_id=selected.id) }}">
+                        <button class="btn btn-primary" type="submit"><i class="bi bi-link-45deg"></i> Generate New Link</button>
+                    </form>
+                    {% if portal_url %}
+                    <form method="POST" action="{{ url_for('member_portal.admin_send_sms', member_id=selected.id) }}">
+                        <button class="btn btn-success" type="submit"><i class="bi bi-phone"></i> Send Link via SMS</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('member_portal.admin_revoke_link', member_id=selected.id) }}" onsubmit="return confirm('Revoke portal access for this member?');">
+                        <button class="btn btn-outline-danger" type="submit"><i class="bi bi-x-circle"></i> Revoke Access</button>
+                    </form>
+                    {% endif %}
+                </div>
+
+                {% set display_url = portal_url or request.args.get('link') %}
+                {% if display_url %}
+                <label class="form-label fw-semibold">Member Login Link</label>
+                <div class="input-group mb-2">
+                    <input type="text" class="form-control font-monospace" id="portalLinkInput" value="{{ display_url }}" readonly>
+                    <button class="btn btn-outline-secondary" type="button" id="copyPortalLink"><i class="bi bi-clipboard"></i> Copy</button>
+                </div>
+                <p class="small text-muted mb-0">
+                    {% if selected.portal_token_expires %}
+                    Valid until {{ selected.portal_token_expires.strftime('%d-%m-%Y %I:%M %p') }}.
+                    {% endif %}
+                    Share this link via WhatsApp, email, or SMS.
+                </p>
+                {% else %}
+                <div class="alert alert-info mb-0">
+                    <i class="bi bi-info-circle"></i> Click <strong>Generate New Link</strong> to create a shareable login link for this member.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">What Member Will See</div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li>Currently borrowed books with <strong>return due dates</strong></li>
+                    <li>Overdue alerts if any book is late</li>
+                    <li>Full borrowing history</li>
+                    <li>Pending fines and membership expiry</li>
+                    <li>Library notices and personal contact details</li>
+                </ul>
+            </div>
+        </div>
+        {% else %}
+        <div class="card">
+            <div class="card-body text-center text-muted py-5">
+                <i class="bi bi-person-plus display-4 d-block mb-3"></i>
+                Select a member from the list to generate their portal login link.
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('copyPortalLink')?.addEventListener('click', function () {
+    var input = document.getElementById('portalLinkInput');
+    input.select();
+    navigator.clipboard.writeText(input.value).then(function () {
+        var btn = document.getElementById('copyPortalLink');
+        btn.innerHTML = '<i class="bi bi-check2"></i> Copied!';
+        setTimeout(function () { btn.innerHTML = '<i class="bi bi-clipboard"></i> Copy'; }, 2000);
+    });
+});
+</script>
+{% endblock %}

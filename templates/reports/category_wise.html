@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Category Report{% endblock %}
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-grid me-2"></i>Category-wise Report</h2>
+<div class="card"><div class="card-body"><table class="table table-striped datatable">
+<thead><tr><th>Category</th><th>Unique Titles</th><th>Total Copies</th><th>Available</th><th>Issued</th></tr></thead>
+<tbody>{% for cat, titles, total, avail in results %}<tr>
+    <td><strong>{{ cat }}</strong></td><td>{{ titles }}</td><td>{{ total or 0 }}</td><td>{{ avail or 0 }}</td><td>{{ (total or 0) - (avail or 0) }}</td>
+</tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}
+{% block scripts %}<script>$(document).ready(function(){ $('.datatable').DataTable(); });</script>{% endblock %}

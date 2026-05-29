@@ -1,0 +1,43 @@
+{% extends "portal/base.html" %}
+{% block title %}Login{% endblock %}
+{% block content %}
+<div class="row justify-content-center g-4">
+    <div class="col-md-6 col-lg-5">
+        <div class="card portal-card shadow-sm">
+            <div class="card-body p-4">
+                <div class="text-center mb-3">
+                    <div class="portal-icon mb-2"><i class="bi bi-phone"></i></div>
+                    <h3>Login with OTP</h3>
+                    <p class="text-muted small mb-0">Enter your registered mobile number — OTP will be sent by SMS</p>
+                </div>
+                <form method="POST" action="{{ url_for('member_portal.send_otp') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label">Mobile Number</label>
+                        <input type="tel" name="phone" class="form-control form-control-lg" placeholder="9876543210" pattern="[0-9]{10}" maxlength="10" required autofocus>
+                        <div class="form-text">Same number registered when your library account was created.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 btn-lg"><i class="bi bi-send"></i> Send OTP</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-5">
+        <div class="card portal-card shadow-sm">
+            <div class="card-body p-4">
+                <h5 class="mb-3"><i class="bi bi-rfid"></i> Or login with Member Card</h5>
+                <form method="POST" action="{{ url_for('member_portal.login_rfid') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label">RFID card ID</label>
+                        <input type="text" name="rfid_card" class="form-control rfid-input" placeholder="MEM-CARD-001" required>
+                    </div>
+                    <button type="submit" class="btn btn-outline-primary w-100">Login with Card</button>
+                </form>
+                <hr>
+                <p class="small text-muted mb-0">Magic link: open the URL sent by library staff and confirm email.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

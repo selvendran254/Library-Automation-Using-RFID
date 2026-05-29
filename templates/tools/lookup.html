@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Quick Lookup{% endblock %}
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-upc-scan me-2"></i>Quick RFID / Barcode Lookup</h2>
+<div class="card mb-4"><div class="card-body">
+    <div class="alert alert-success py-2 mb-3">
+        <i class="bi bi-usb-symbol me-2"></i>Real RFID reader use pannunga — field-la focus pannitu tag scan pannunga.
+    </div>
+    <form method="GET" class="row g-2 align-items-end">
+        <div class="col-md-10"><label class="form-label">Scan or Enter RFID Tag / Member Card / ISBN / Phone</label>
+            <input type="text" class="form-control form-control-lg rfid-input rfid-live" name="q" value="{{ q }}" placeholder="BOOK-001 or MEM-CARD-001..." autofocus></div>
+        <div class="col-md-2"><button type="submit" class="btn btn-primary btn-lg w-100">Lookup</button></div>
+    </form>
+</div></div>
+
+{% if q %}
+<div class="row g-4">
+    {% if book %}
+    <div class="col-md-6"><div class="card border-primary h-100"><div class="card-header bg-primary text-white"><i class="bi bi-book"></i> Book Found</div><div class="card-body">
+        <h4>{{ book.title }}</h4><p class="text-muted">by {{ book.author }}</p>
+        <table class="table table-sm"><tr><td>RFID</td><td><code>{{ book.rfid_tag }}</code></td></tr>
+        <tr><td>ISBN</td><td>{{ book.isbn or '-' }}</td></tr><tr><td>Category</td><td>{{ book.category }}</td></tr>
+        <tr><td>Shelf</td><td>{{ book.shelf_location or '-' }}</td></tr><tr><td>Available</td><td>{{ book.available_qty }}/{{ book.total_qty }}</td></tr>
+        <tr><td>Status</td><td><span class="badge {% if book.book_status=='Active' %}bg-success{% elif book.book_status=='Lost' %}bg-danger{% else %}bg-warning text-dark{% endif %}">{{ book.book_status }}</span></td></tr>
+        {% if active_txn %}<tr><td>Issued To</td><td>{{ active_txn.member.name }} (due {{ active_txn.due_date.strftime('%d-%m-%Y') }})</td></tr>{% endif %}
+        </table>
+        <a href="{{ url_for('books.book_detail', book_id=book.id) }}" class="btn btn-outline-primary btn-sm">View Details</a>
+    </div></div></div>
+    {% endif %}
+    {% if member %}
+    <div class="col-md-6"><div class="card border-info h-100"><div class="card-header bg-info text-white"><i class="bi bi-person"></i> Member Found</div><div class="card-body">
+        <h4>{{ member.name }}</h4>
+        <table class="table table-sm"><tr><td>RFID Card</td><td><code>{{ member.rfid_card }}</code></td></tr>
+        <tr><td>Phone</td><td>{{ member.phone }}</td></tr><tr><td>Type</td><td>{{ member.membership_type }}</td></tr>
+        <tr><td>Status</td><td>{{ member.status }}</td></tr><tr><td>Active Books</td><td>{{ member.active_books_count }}</td></tr>
+        <tr><td>Pending Fine</td><td>₹{{ "%.0f"|format(member.pending_fine) }}</td></tr></table>
+        <a href="{{ url_for('members.member_detail', member_id=member.id) }}" class="btn btn-outline-info btn-sm me-1">Profile</a>
+        <a href="{{ url_for('members.print_card', member_id=member.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-credit-card"></i> Print Card</a>
+    </div></div></div>
+    {% endif %}
+    {% if not book and not member %}
+    <div class="col-12"><div class="alert alert-danger"><i class="bi bi-x-circle"></i> No book or member found for "{{ q }}"</div></div>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

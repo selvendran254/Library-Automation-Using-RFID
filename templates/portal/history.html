@@ -1,0 +1,49 @@
+{% extends "portal/base.html" %}
+{% block title %}Borrowing History{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2>Borrowing History</h2>
+        <p class="text-muted mb-0">All books you have borrowed from the library</p>
+    </div>
+    <a href="{{ url_for('member_portal.dashboard') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Back to Dashboard</a>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table mb-0 datatable">
+                <thead>
+                    <tr>
+                        <th>Book</th>
+                        <th>Author</th>
+                        <th>Issued</th>
+                        <th>Due Date</th>
+                        <th>Returned</th>
+                        <th>Fine</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in history %}
+                    <tr>
+                        <td>{{ t.book.title }}</td>
+                        <td>{{ t.book.author }}</td>
+                        <td>{{ t.issue_date.strftime('%d-%m-%Y') }}</td>
+                        <td>{{ t.due_date.strftime('%d-%m-%Y') }}</td>
+                        <td>{{ t.return_date.strftime('%d-%m-%Y') if t.return_date else '-' }}</td>
+                        <td>{% if t.fine_amount %}₹{{ "%.0f"|format(t.fine_amount) }}{% else %}-{% endif %}</td>
+                        <td>
+                            {% if not t.return_date %}
+                            {% if t.is_overdue %}<span class="badge bg-danger">Overdue</span>{% else %}<span class="badge bg-primary">Issued</span>{% endif %}
+                            {% else %}<span class="badge bg-success">Returned</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}<script>$(document).ready(function(){ $('.datatable').DataTable({ order: [[2,'desc']] }); });</script>{% endblock %}

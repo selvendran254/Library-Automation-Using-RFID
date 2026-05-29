@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}RFID Test{% endblock %}
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-upc-scan me-2"></i>RFID Reader Test</h2>
+
+<div class="alert alert-info">
+    Mode: <strong>{{ status.mode|upper }}</strong>
+    {% if status.mode=='serial' %} — Port: {{ status.port }} {% if status.running %}<span class="badge bg-success">Running</span>{% else %}<span class="badge bg-danger">Stopped</span>{% endif %}{% endif %}
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card rfid-panel">
+            <div class="card-header bg-success text-white"><i class="bi bi-rfid"></i> Scan Test Area</div>
+            <div class="card-body text-center p-4">
+                <div class="rfid-scan-zone mb-3" id="scanZone">
+                    <i class="bi bi-rfid" style="font-size:4rem;color:#4361ee"></i>
+                    <p class="mt-2 mb-0" id="scanHint">Focus below & scan your RFID tag...</p>
+                </div>
+                <input type="text" class="form-control form-control-lg rfid-input rfid-live text-center" id="testInput"
+                       placeholder="Scan tag here..." autofocus>
+                <div id="testResult" class="mt-3 scan-feedback"></div>
+                <div id="tagDetails" class="mt-3 text-start d-none"></div>
+            </div>
+        </div>
+        <div class="text-center mt-3">
+            <a href="{{ url_for('rfid.rfid_setup') }}" class="btn btn-outline-primary btn-sm">RFID Setup</a>
+            <a href="{{ url_for('transactions.issue_book') }}" class="btn btn-primary btn-sm">Go to Issue</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+let lastId = 0;
+const input = document.getElementById('testInput');
+const result = document.getElementById('testResult');
+const details = document.getElementById('tagDetails');
+const zone = document.getElementById('scanZone');
+
+async function validateTag(tag) {
+    if (!tag) return;
+    result.innerHTML = '<span class="text-muted">Validating...</span>';
+    zone.classList.add('scanning');
+
+    for (const type of ['member', 'book']) {
+        const res = await fetch('/transactions/api/rfid/validate', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({type, tag})
+        });
+        const data = await res.json();
+        if (data.valid) {
+            zone.classList.remove('scanning');
+            zone.classList.add('scan-success');
+            input.classList.add('scan-success');
+            result.innerHTML = `<span class="valid"><i class="bi bi-check-circle-fill"></i> Valid ${type} tag!</span>`;
+            if (type === 'member') {
+                details.innerHTML = `<div class="alert alert-success"><strong>Member:</strong> ${data.name}<br><strong>ID:</strong> ${data.id}<br><strong>Active Books:</strong> ${data.active_books || 0}</div>`;
+            } else {
+                details.innerHTML = `<div class="alert alert-success"><strong>Book:</strong> ${data.title}<br><strong>Available:</strong> ${data.available}</div>`;
+            }
+            details.classList.remove('d-none');
+            fetch('/rfid/api/push-scan', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({tag})});
+            setTimeout(() => { input.value=''; input.classList.remove('scan-success'); zone.classList.remove('scan-success'); details.classList.add('d-none'); input.focus(); }, 3000);
+            return;
+        }
+    }
+    zone.classList.remove('scanning');
+    zone.classList.add('scan-error');
+    result.innerHTML = '<span class="invalid"><i class="bi bi-x-circle-fill"></i> Tag not found in database</span>';
+    setTimeout(() => { zone.classList.remove('scan-error'); input.value=''; input.focus(); }, 2000);
+}
+
+input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); validateTag(input.value.trim()); }});
+input.addEventListener('input', () => { clearTimeout(window._t); window._t = setTimeout(() => { if (input.value.trim().length >= 4) validateTag(input.value.trim()); }, 150); });
+
+{% if status.mode == 'serial' %}
+setInterval(async () => {
+    const res = await fetch(`/rfid/api/last-scan?since=${lastId}`);
+    const data = await res.json();
+    if (data.success && data.id > lastId) { lastId = data.id; input.value = data.tag; validateTag(data.tag); }
+}, 300);
+{% endif %}
+</script>
+{% endblock %}

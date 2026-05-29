@@ -1,0 +1,29 @@
+{% if portal_inbox %}
+<div class="portal-thread-list {% if compact %}portal-thread-list-compact{% endif %}">
+    {% for item in portal_inbox %}
+    <button type="button"
+            class="portal-thread-item {% if item.member_unread %}is-unread{% endif %}"
+            data-thread-id="{{ item.id }}"
+            data-thread-subject="{{ item.subject|e }}">
+        <div class="portal-thread-top">
+            <strong>{{ item.subject }}</strong>
+            {% if item.status %}
+            <span class="portal-tag {% if item.status == 'Resolved' %}tag-success{% elif item.status == 'Pending' %}tag-warning{% else %}tag-info{% endif %}">{{ item.status }}</span>
+            {% elif item.kind == 'direct' %}
+            <span class="portal-tag tag-info">Library</span>
+            {% endif %}
+        </div>
+        <p class="portal-thread-preview">
+            {% if item.last_sender == 'admin' %}<i class="bi bi-person-badge"></i>{% else %}<i class="bi bi-person"></i>{% endif %}
+            {{ item.last_preview or 'Tap to open chat' }}
+        </p>
+        {% if item.updated_at %}
+        <span class="portal-thread-time">{{ item.updated_at.strftime('%d %b, %I:%M %p') }}</span>
+        {% endif %}
+        <i class="bi bi-chevron-right portal-thread-arrow"></i>
+    </button>
+    {% endfor %}
+</div>
+{% else %}
+<div class="bento-empty sm"><p>No messages yet — library will chat with you here</p></div>
+{% endif %}

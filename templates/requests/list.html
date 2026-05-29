@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Book Requests{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between mb-4">
+    <div><h2><i class="bi bi-hand-index me-2"></i>Book Requests</h2>{% if pending_count %}<span class="badge bg-warning text-dark">{{ pending_count }} pending</span>{% endif %}</div>
+    <a href="{{ url_for('book_requests.add_request') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus"></i> New Request</a>
+</div>
+<div class="card mb-3"><div class="card-body py-2"><form method="GET" class="row g-2">
+    <div class="col-md-6"><select name="status" class="form-select form-select-sm"><option value="">All</option><option value="Pending" {% if status_filter=='Pending' %}selected{% endif %}>Pending</option><option value="Approved" {% if status_filter=='Approved' %}selected{% endif %}>Approved</option><option value="Fulfilled" {% if status_filter=='Fulfilled' %}selected{% endif %}>Fulfilled</option><option value="Rejected" {% if status_filter=='Rejected' %}selected{% endif %}>Rejected</option></select></div>
+    <div class="col-md-6"><button class="btn btn-primary btn-sm w-100">Filter</button></div>
+</form></div></div>
+<div class="card"><div class="card-body"><table class="table datatable">
+<thead><tr><th>Member</th><th>Book Title</th><th>Author</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody>{% for r in requests_list %}<tr>
+    <td>{{ r.member.name }}</td><td>{{ r.book_title }}</td><td>{{ r.author or '-' }}</td>
+    <td>{{ r.request_date.strftime('%d-%m-%Y') }}</td>
+    <td><span class="badge {% if r.status=='Pending' %}bg-warning text-dark{% elif r.status=='Approved' %}bg-info{% elif r.status=='Fulfilled' %}bg-success{% else %}bg-secondary{% endif %}">{{ r.status }}</span></td>
+    <td>{% if r.status=='Pending' %}
+        <form method="POST" action="{{ url_for('book_requests.approve_request', req_id=r.id) }}" class="d-inline"><button class="btn btn-sm btn-success">Approve</button></form>
+        <form method="POST" action="{{ url_for('book_requests.reject_request', req_id=r.id) }}" class="d-inline"><button class="btn btn-sm btn-outline-danger">Reject</button></form>
+    {% elif r.status=='Approved' %}
+        <form method="POST" action="{{ url_for('book_requests.fulfill_request', req_id=r.id) }}" class="d-inline"><button class="btn btn-sm btn-primary">Fulfill</button></form>
+    {% endif %}</td>
+</tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}
+{% block scripts %}<script>$(document).ready(function(){ $('.datatable').DataTable(); });</script>{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Help Guide{% endblock %}
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-question-circle me-2"></i>Help & User Guide</h2>
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="accordion" id="helpAccordion">
+            <div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#h1">📚 Book Issue (RFID)</button></h2>
+            <div id="h1" class="accordion-collapse collapse show" data-bs-parent="#helpAccordion"><div class="accordion-body">
+                <ol><li>Go to <strong>Issue Book</strong></li><li>Click <strong>Scan RFID</strong> for member card</li><li>Scan book tag</li><li>Click Issue — SMS sent to member phone with due date</li></ol>
+            </div></div></div>
+            <div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#h2">📥 Book Return (RFID)</button></h2>
+            <div id="h2" class="accordion-collapse collapse" data-bs-parent="#helpAccordion"><div class="accordion-body">
+                <ol><li>Go to <strong>Return Book</strong></li><li>Scan book RFID tag</li><li>Member auto-detected</li><li>Return — SMS confirmation sent to member phone</li><li>Fine calculated if overdue (₹2/day)</li></ol>
+            </div></div></div>
+            <div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#h3">📱 SMS Alerts</button></h2>
+            <div id="h3" class="accordion-collapse collapse" data-bs-parent="#helpAccordion"><div class="accordion-body">
+                <ul><li><strong>Due Soon:</strong> SMS 2 days before due date</li><li><strong>Overdue:</strong> SMS when timing mudinjaa (due date crossed)</li><li><strong>Return:</strong> SMS confirmation on return</li><li>View all in <strong>SMS Log</strong></li><li>Bulk send from <strong>SMS Alerts</strong> page</li></ul>
+            </div></div></div>
+            <div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#h4">🔍 Quick Lookup</button></h2>
+            <div id="h4" class="accordion-collapse collapse" data-bs-parent="#helpAccordion"><div class="accordion-body">
+                Enter any RFID tag, member card, ISBN, or phone number to instantly see book/member details without issuing or returning.
+            </div></div></div>
+            <div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#h5">📋 Other Features</button></h2>
+            <div id="h5" class="accordion-collapse collapse" data-bs-parent="#helpAccordion"><div class="accordion-body">
+                <ul><li><strong>Reservations</strong> — Hold unavailable books</li><li><strong>Book Requests</strong> — Members request new books</li><li><strong>Notice Board</strong> — Post library announcements</li><li><strong>Renew</strong> — Extend due date (+7 days, max 2 times)</li><li><strong>Print Card</strong> — Member profile → Print Library Card</li><li><strong>Lost/Damaged</strong> — Edit book → set status</li></ul>
+            </div></div></div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card"><div class="card-header">Quick Links</div><div class="card-body d-grid gap-2">
+            <a href="{{ url_for('transactions.issue_book') }}" class="btn btn-primary btn-sm">Issue Book</a>
+            <a href="{{ url_for('transactions.return_book') }}" class="btn btn-success btn-sm">Return Book</a>
+            <a href="{{ url_for('tools.quick_lookup') }}" class="btn btn-outline-primary btn-sm">Quick Lookup</a>
+            <a href="{{ url_for('notifications.due_alerts') }}" class="btn btn-outline-warning btn-sm">SMS Alerts</a>
+            <a href="{{ url_for('settings.settings_home') }}" class="btn btn-outline-secondary btn-sm">Settings</a>
+        </div></div>
+        <div class="card mt-3"><div class="card-header">Loan Rules</div><div class="card-body small">
+            <ul class="mb-0"><li>Loan period: 14 days</li><li>Fine: ₹2/day after due</li><li>Standard: 3 books | Premium: 5 | Student: 2</li><li>Max renewals: 2 (+7 days each)</li></ul>
+        </div></div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Receipt #{{ transaction.receipt_no }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-6">
+<div class="card receipt-card" id="receiptPrint">
+    <div class="card-body text-center p-4">
+        <h4><i class="bi bi-book-half"></i> Library RFID System</h4>
+        <p class="text-muted">Transaction Receipt</p>
+        <hr>
+        <p><strong>Receipt No:</strong> {{ transaction.receipt_no or ('TXN-' ~ transaction.id) }}</p>
+        <p><strong>Date:</strong> {{ (transaction.return_date or transaction.issue_date).strftime('%d-%m-%Y %H:%M') }}</p>
+        <p><strong>Book:</strong> {{ transaction.book.title }}</p>
+        <p><strong>Member:</strong> {{ transaction.member.name }} ({{ transaction.member.rfid_card }})</p>
+        <p><strong>Issue Date:</strong> {{ transaction.issue_date.strftime('%d-%m-%Y') }}</p>
+        <p><strong>Due Date:</strong> {{ transaction.due_date.strftime('%d-%m-%Y') }}</p>
+        {% if transaction.return_date %}<p><strong>Return Date:</strong> {{ transaction.return_date.strftime('%d-%m-%Y') }}</p>{% endif %}
+        {% if transaction.fine_amount > 0 %}<p class="text-danger"><strong>Fine:</strong> ₹{{ "%.0f"|format(transaction.fine_amount) }} {% if transaction.fine_paid %}(Paid){% else %}(Pending){% endif %}</p>{% endif %}
+        <p><strong>Status:</strong> {{ transaction.status }}</p>
+        {% set last_sms = transaction.sms_logs[-1] if transaction.sms_logs else none %}
+        {% if last_sms %}
+        <hr>
+        <div class="text-start sms-bubble-box">
+            <p class="mb-1"><strong><i class="bi bi-phone"></i> SMS Sent to {{ last_sms.phone }}</strong></p>
+            <div class="sms-bubble">{{ last_sms.message }}</div>
+            <small class="text-muted">{{ last_sms.sent_at.strftime('%d-%m-%Y %H:%M') }} — {{ last_sms.message_type }}</small>
+        </div>
+        {% endif %}
+        <hr><p class="small text-muted">Thank you for using our library!</p>
+    </div>
+</div>
+<div class="d-flex gap-2 justify-content-center mt-3">
+    <button onclick="window.print()" class="btn btn-primary"><i class="bi bi-printer"></i> Print</button>
+    <a href="{{ url_for('transactions.list_transactions') }}" class="btn btn-secondary">Back</a>
+</div></div></div>
+{% endblock %}

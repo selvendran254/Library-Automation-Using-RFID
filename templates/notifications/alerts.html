@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}SMS Alerts{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-bell me-2"></i>Due Date Alerts & SMS</h2>
+        <small class="text-muted">Automatic SMS to member phone when due date crosses or book returned</small>
+    </div>
+    <div class="d-flex gap-2">
+        <form method="POST" action="{{ url_for('notifications.run_alert_check') }}">
+            <button class="btn btn-primary"><i class="bi bi-send me-1"></i>Send All Pending Alerts</button>
+        </form>
+        {% if overdue %}
+        <form method="POST" action="{{ url_for('notifications.bulk_overdue_sms') }}">
+            <button class="btn btn-danger"><i class="bi bi-phone me-1"></i>Bulk Overdue SMS ({{ overdue|length }})</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<div class="alert alert-info">
+    <i class="bi bi-phone me-2"></i>
+    <strong>SMS Simulation Mode:</strong> Messages are logged and sent to member's registered phone number.
+    Due reminder sent {{ reminder_days }} day(s) before due date. Overdue alert sent when timing mudinjaa (due date crossed).
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white"><i class="bi bi-exclamation-octagon"></i> Overdue — SMS Alert Required ({{ overdue|length }})</div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead><tr><th>Member</th><th>Phone</th><th>Book</th><th>Due Date</th><th></th></tr></thead>
+                    <tbody>
+                    {% for txn in overdue %}
+                    <tr>
+                        <td>{{ txn.member.name }}</td>
+                        <td><code>{{ txn.member.phone }}</code></td>
+                        <td>{{ txn.book.title }}</td>
+                        <td class="text-danger fw-bold">{{ txn.due_date.strftime('%d-%m-%Y') }}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('notifications.send_reminder', transaction_id=txn.id) }}">
+                                <button class="btn btn-sm btn-danger"><i class="bi bi-phone"></i> Send SMS</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center text-muted p-3">No overdue books</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card border-warning">
+            <div class="card-header bg-warning"><i class="bi bi-clock"></i> Due Soon — Reminder SMS ({{ due_soon|length }})</div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead><tr><th>Member</th><th>Phone</th><th>Book</th><th>Due Date</th><th></th></tr></thead>
+                    <tbody>
+                    {% for txn in due_soon %}
+                    <tr>
+                        <td>{{ txn.member.name }}</td>
+                        <td><code>{{ txn.member.phone }}</code></td>
+                        <td>{{ txn.book.title }}</td>
+                        <td class="text-warning fw-bold">{{ txn.due_date.strftime('%d-%m-%Y') }}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('notifications.send_reminder', transaction_id=txn.id) }}">
+                                <button class="btn btn-sm btn-warning"><i class="bi bi-phone"></i> Send SMS</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center text-muted p-3">No upcoming due dates</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between">
+        <span>Recent SMS Sent</span>
+        <a href="{{ url_for('notifications.sms_inbox') }}" class="btn btn-sm btn-outline-primary">View All SMS</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <thead><tr><th>Time</th><th>Phone</th><th>Type</th><th>Message</th><th></th></tr></thead>
+            <tbody>
+            {% for sms in recent_sms %}
+            <tr>
+                <td>{{ sms.sent_at.strftime('%d-%m-%Y %H:%M') }}</td>
+                <td><code>{{ sms.phone }}</code></td>
+                <td><span class="badge bg-info">{{ sms.message_type }}</span></td>
+                <td class="small sms-preview">{{ sms.message[:80] }}{% if sms.message|length > 80 %}...{% endif %}</td>
+                <td><button class="btn btn-sm btn-outline-secondary view-sms-btn" data-sms-id="{{ sms.id }}"><i class="bi bi-eye"></i></button></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center text-muted p-3">No SMS sent yet</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="smsModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header bg-success text-white"><h5 class="modal-title"><i class="bi bi-phone"></i> SMS Delivered</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body" id="smsModalBody"></div>
+    </div></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.view-sms-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const res = await fetch(`/notifications/api/sms/simulate/${this.dataset.smsId}`);
+        const data = await res.json();
+        document.getElementById('smsModalBody').innerHTML = `
+            <p><strong>To:</strong> <code>${data.phone}</code></p>
+            <p><strong>Type:</strong> ${data.type}</p>
+            <p><strong>Sent:</strong> ${data.sent_at}</p>
+            <div class="alert alert-success sms-bubble">${data.message}</div>`;
+        new bootstrap.Modal(document.getElementById('smsModal')).show();
+    });
+});
+</script>
+{% endblock %}

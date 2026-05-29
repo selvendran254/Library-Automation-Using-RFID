@@ -1,0 +1,484 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<div class="page-hero settings-hero mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+        <div>
+            <h2 class="mb-2"><i class="bi bi-sliders2 me-2"></i>Settings</h2>
+            <p class="hero-sub mb-0">Manage library rules, notifications, RFID, and categories in one place.</p>
+        </div>
+        <div class="hero-actions d-flex flex-wrap gap-2">
+            <form method="POST" action="{{ url_for('settings.init_defaults') }}" class="mb-0">
+                <button class="btn btn-outline-light btn-sm" type="submit"><i class="bi bi-arrow-clockwise me-1"></i> Reset Defaults</button>
+            </form>
+            <a href="{{ url_for('rfid.rfid_setup') }}" class="btn btn-light btn-sm"><i class="bi bi-rfid me-1"></i> RFID Setup</a>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="card stat-card stat-today h-100">
+            <div class="card-body py-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted mb-1">Loan Period</h6>
+                    <h3 class="mb-0" id="previewLoan">{{ settings_map.get('loan_period_days', '14') }}</h3>
+                    <small class="text-muted">days</small>
+                </div>
+                <div class="stat-icon-wrap blue"><i class="bi bi-calendar3"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body py-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted mb-1">Daily Fine</h6>
+                    <h3 class="mb-0" id="previewFine">₹{{ settings_map.get('fine_per_day', '2') }}</h3>
+                    <small class="text-muted">per overdue day</small>
+                </div>
+                <div class="stat-icon-wrap orange"><i class="bi bi-currency-rupee"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body py-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted mb-1">SMS Alerts</h6>
+                    <h3 class="mb-0 fs-4" id="previewSms">{% if settings_map.get('sms_enabled', '1') == '1' %}Active{% else %}Off{% endif %}</h3>
+                    <small class="text-muted">auto reminders</small>
+                </div>
+                <div class="stat-icon-wrap green"><i class="bi bi-bell"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body py-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted mb-1">Categories</h6>
+                    <h3 class="mb-0">{{ category_count }}</h3>
+                    <small class="text-muted">book types</small>
+                </div>
+                <div class="stat-icon-wrap purple"><i class="bi bi-tags"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="settings-shell">
+    <aside class="settings-sidebar card">
+        <div class="settings-sidebar-head">
+            <span class="settings-sidebar-title">Sections</span>
+            <span class="badge rounded-pill bg-light text-dark border" id="settingsDirtyBadge" hidden>Unsaved</span>
+        </div>
+        <nav class="settings-sidebar-nav" id="settingsNav">
+            {% for group in setting_groups %}
+            <button type="button" class="settings-nav-btn {% if loop.first %}active{% endif %}" data-section="{{ group.id }}">
+                <span class="settings-nav-icon accent-{{ group.accent }}"><i class="bi {{ group.icon }}"></i></span>
+                <span class="settings-nav-text">
+                    <strong>{{ group.title }}</strong>
+                    <small>{{ group.settings|length }} option{{ 's' if group.settings|length != 1 else '' }}</small>
+                </span>
+                <i class="bi bi-chevron-right settings-nav-arrow"></i>
+            </button>
+            {% endfor %}
+            <button type="button" class="settings-nav-btn" data-section="categories">
+                <span class="settings-nav-icon accent-purple"><i class="bi bi-tags"></i></span>
+                <span class="settings-nav-text">
+                    <strong>Categories</strong>
+                    <small>{{ category_count }} listed</small>
+                </span>
+                <i class="bi bi-chevron-right settings-nav-arrow"></i>
+            </button>
+        </nav>
+        <div class="settings-sidebar-foot">
+            <a href="{{ url_for('member_portal.admin_home') }}" class="settings-quick-link"><i class="bi bi-person-lines-fill"></i> Member Portal</a>
+            <a href="{{ url_for('notifications.sms_inbox') }}" class="settings-quick-link"><i class="bi bi-chat-dots"></i> SMS Log</a>
+        </div>
+    </aside>
+
+    <div class="settings-content">
+        <form method="POST" action="{{ url_for('settings.update_settings') }}" id="settingsForm">
+            {% for group in setting_groups %}
+            <section class="settings-section card {% if not loop.first %}d-none{% endif %}" data-section="{{ group.id }}" id="section-{{ group.id }}">
+                <div class="settings-section-head accent-{{ group.accent }}">
+                    <div class="settings-section-icon"><i class="bi {{ group.icon }}"></i></div>
+                    <div>
+                        <h4 class="mb-1">{{ group.title }}</h4>
+                        <p class="mb-0">{{ group.description }}</p>
+                    </div>
+                </div>
+
+                {% if group.id == 'membership' %}
+                <div class="settings-membership-grid">
+                    {% for s in group.settings %}
+                    {% if s.key != 'max_books_default' %}
+                    {% set meta = input_meta.get(s.key, {}) %}
+                    <div class="settings-tier-card">
+                        <div class="settings-tier-icon accent-{{ group.accent }}">
+                            <i class="bi {{ setting_icons.get(s.key, 'bi-book') }}"></i>
+                        </div>
+                        <label class="settings-tier-label" for="setting-{{ s.key }}">{{ s.label }}</label>
+                        <div class="input-group settings-tier-input">
+                            <input type="number" class="form-control form-control-lg text-center fw-bold setting-input" id="setting-{{ s.key }}" name="{{ s.key }}" value="{{ s.value }}" data-preview-key="{{ s.key }}" {% if meta.min is defined %}min="{{ meta.min }}"{% endif %} {% if meta.max is defined %}max="{{ meta.max }}"{% endif %}>
+                            <span class="input-group-text">books</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% for s in group.settings if s.key == 'max_books_default' %}
+                {% set meta = input_meta.get(s.key, {}) %}
+                <div class="settings-row-list mt-2">
+                    <div class="settings-row">
+                        <div class="settings-row-info">
+                            <span class="settings-row-icon"><i class="bi {{ setting_icons.get(s.key, 'bi-sliders') }}"></i></span>
+                            <div>
+                                <div class="settings-row-title">{{ s.label }}</div>
+                                <div class="settings-row-desc">{{ s.description }}</div>
+                            </div>
+                        </div>
+                        <div class="settings-row-control">
+                            <div class="input-group settings-compact-input">
+                                <input type="number" class="form-control setting-input" id="setting-{{ s.key }}" name="{{ s.key }}" value="{{ s.value }}" data-preview-key="{{ s.key }}" {% if meta.min is defined %}min="{{ meta.min }}"{% endif %} {% if meta.max is defined %}max="{{ meta.max }}"{% endif %}>
+                                <span class="input-group-text">books</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                {% elif group.id == 'notifications' %}
+                {% for s in group.settings if s.key == 'sms_enabled' %}
+                <div class="settings-feature-card {% if s.value == '1' %}is-on{% else %}is-off{% endif %}" id="smsFeatureCard">
+                    <div class="settings-feature-body">
+                        <div class="settings-feature-icon"><i class="bi bi-phone-vibrate"></i></div>
+                        <div>
+                            <h5 class="mb-1">Automatic SMS Alerts</h5>
+                            <p class="text-muted mb-0">Send issue, return, due-soon, and overdue messages to member phones.</p>
+                        </div>
+                    </div>
+                    <div class="form-check form-switch settings-feature-switch">
+                        <input type="hidden" name="{{ s.key }}" value="0">
+                        <input class="form-check-input setting-input setting-toggle" type="checkbox" role="switch" id="setting-{{ s.key }}" name="{{ s.key }}" value="1" data-preview-key="{{ s.key }}" data-preview-type="sms" {% if s.value == '1' %}checked{% endif %}>
+                    </div>
+                </div>
+                {% endfor %}
+                <div class="settings-row-list">
+                    {% for s in group.settings if s.key != 'sms_enabled' %}
+                    {% set meta = input_meta.get(s.key, {}) %}
+                    <div class="settings-row">
+                        <div class="settings-row-info">
+                            <span class="settings-row-icon"><i class="bi {{ setting_icons.get(s.key, 'bi-sliders') }}"></i></span>
+                            <div>
+                                <div class="settings-row-title">{{ s.label }}</div>
+                                <div class="settings-row-desc">{{ s.description }}</div>
+                            </div>
+                        </div>
+                        <div class="settings-row-control">
+                            {% if meta.type == 'select' %}
+                            <select class="form-select settings-compact-input setting-input" id="setting-{{ s.key }}" name="{{ s.key }}" data-preview-key="{{ s.key }}">
+                                {% for val, label in meta.options %}
+                                <option value="{{ val }}" {% if s.value == val %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            {% elif meta.type == 'password' %}
+                            <input type="password" class="form-control settings-compact-input setting-input" id="setting-{{ s.key }}" name="{{ s.key }}" value="{{ s.value }}" placeholder="{{ meta.placeholder or '' }}" autocomplete="off">
+                            {% else %}
+                            <div class="input-group settings-compact-input">
+                                <input type="number" class="form-control setting-input" id="setting-{{ s.key }}" name="{{ s.key }}" value="{{ s.value }}" data-preview-key="{{ s.key }}" {% if meta.min is defined %}min="{{ meta.min }}"{% endif %} {% if meta.max is defined %}max="{{ meta.max }}"{% endif %}>
+                                {% if meta.suffix %}<span class="input-group-text">{{ meta.suffix }}</span>{% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                {% elif group.id == 'rfid' %}
+                <div class="settings-callout">
+                    <i class="bi bi-info-circle"></i>
+                    <div>
+                        <strong>Hardware setup</strong>
+                        <p class="mb-0 small">Use <strong>HID</strong> for keyboard-style scanners. Use <strong>Serial</strong> only with a real USB serial RFID reader.</p>
+                    </div>
+                    <a href="{{ url_for('rfid.rfid_setup') }}" class="btn btn-sm btn-outline-primary ms-auto">Open RFID Setup</a>
+                </div>
+                <div class="settings-row-list">
+                    {% for s in group.settings %}
+                    {% set meta = input_meta.get(s.key, {}) %}
+                    <div class="settings-row">
+                        <div class="settings-row-info">
+                            <span class="settings-row-icon"><i class="bi {{ setting_icons.get(s.key, 'bi-sliders') }}"></i></span>
+                            <div>
+                                <div class="settings-row-title">{{ s.label }}</div>
+                                <div class="settings-row-desc">{{ s.description }}</div>
+                            </div>
+                        </div>
+                        <div class="settings-row-control">
+                            {% if meta.type == 'select' %}
+                            <select class="form-select settings-compact-input setting-input" id="setting-{{ s.key }}" name="{{ s.key }}" data-preview-key="{{ s.key }}" data-preview-type="rfid_mode">
+                                {% for val, label in meta.options %}
+                                <option value="{{ val }}" {% if s.value == val %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            {% else %}
+                            <div class="input-group settings-compact-input">
+                                <input type="{{ meta.type or 'text' }}" class="form-control setting-input" id="setting-{{ s.key }}" name="{{ s.key }}" value="{{ s.value }}" data-preview-key="{{ s.key }}" {% if meta.min is defined %}min="{{ meta.min }}"{% endif %} {% if meta.max is defined %}max="{{ meta.max }}"{% endif %} {% if meta.step is defined %}step="{{ meta.step }}"{% endif %}>
+                                {% if meta.suffix %}<span class="input-group-text">{{ meta.suffix }}</span>{% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                {% else %}
+                <div class="settings-row-list">
+                    {% for s in group.settings %}
+                    {% set meta = input_meta.get(s.key, {}) %}
+                    <div class="settings-row">
+                        <div class="settings-row-info">
+                            <span class="settings-row-icon"><i class="bi {{ setting_icons.get(s.key, 'bi-sliders') }}"></i></span>
+                            <div>
+                                <div class="settings-row-title">{{ s.label }}</div>
+                                <div class="settings-row-desc">{{ s.description }}</div>
+                            </div>
+                        </div>
+                        <div class="settings-row-control">
+                            {% if meta.type == 'toggle' %}
+                            <div class="form-check form-switch settings-row-switch">
+                                <input type="hidden" name="{{ s.key }}" value="0">
+                                <input class="form-check-input setting-input setting-toggle" type="checkbox" role="switch" id="setting-{{ s.key }}" name="{{ s.key }}" value="1" data-preview-key="{{ s.key }}" {% if s.value == '1' %}checked{% endif %}>
+                            </div>
+                            {% elif meta.type == 'select' %}
+                            <select class="form-select settings-compact-input setting-input" id="setting-{{ s.key }}" name="{{ s.key }}" data-preview-key="{{ s.key }}">
+                                {% for val, label in meta.options %}
+                                <option value="{{ val }}" {% if s.value == val %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            {% else %}
+                            <div class="input-group settings-compact-input">
+                                {% if meta.prefix %}<span class="input-group-text">{{ meta.prefix }}</span>{% endif %}
+                                <input type="{{ meta.type or 'text' }}" class="form-control setting-input" id="setting-{{ s.key }}" name="{{ s.key }}" value="{{ s.value }}" data-preview-key="{{ s.key }}" {% if meta.min is defined %}min="{{ meta.min }}"{% endif %} {% if meta.max is defined %}max="{{ meta.max }}"{% endif %} {% if meta.step is defined %}step="{{ meta.step }}"{% endif %}>
+                                {% if meta.suffix %}<span class="input-group-text">{{ meta.suffix }}</span>{% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </section>
+            {% endfor %}
+
+            <div class="settings-sticky-save" id="settingsStickySave">
+                <div class="settings-sticky-inner">
+                    <div class="settings-sticky-text">
+                        <i class="bi bi-pencil-square"></i>
+                        <span id="settingsStickyLabel">Review your changes and save</span>
+                    </div>
+                    <button type="submit" class="btn btn-primary px-4"><i class="bi bi-check2-circle me-1"></i> Save Settings</button>
+                </div>
+            </div>
+        </form>
+
+        <section class="settings-section card d-none" data-section="categories" id="section-categories">
+            <div class="settings-section-head accent-purple">
+                <div class="settings-section-icon"><i class="bi bi-tags"></i></div>
+                <div>
+                    <h4 class="mb-1">Book Categories</h4>
+                    <p class="mb-0">Group books by type and assign shelf sections.</p>
+                </div>
+            </div>
+
+            <div class="settings-category-form">
+                <form method="POST" action="{{ url_for('settings.add_category') }}">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Name</label>
+                            <input name="name" class="form-control" placeholder="Fiction" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Shelf</label>
+                            <input name="shelf_section" class="form-control" placeholder="A1">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Description</label>
+                            <input name="description" class="form-control" placeholder="Novels and stories">
+                        </div>
+                        <div class="col-md-1">
+                            <button class="btn btn-primary w-100" type="submit"><i class="bi bi-plus-lg"></i></button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            {% if categories %}
+            <div class="table-responsive settings-category-table-wrap">
+                <table class="table settings-category-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Shelf</th>
+                            <th>Description</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in categories %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="settings-cat-avatar">{{ c.name[:1] }}</span>
+                                    <strong>{{ c.name }}</strong>
+                                </div>
+                            </td>
+                            <td>{% if c.shelf_section %}<span class="badge settings-shelf-badge"><i class="bi bi-geo-alt"></i> {{ c.shelf_section }}</span>{% else %}-{% endif %}</td>
+                            <td class="text-muted">{{ c.description or '—' }}</td>
+                            <td class="text-end">
+                                <form method="POST" action="{{ url_for('settings.delete_category', cat_id=c.id) }}" class="d-inline" onsubmit="return confirm('Delete {{ c.name }}?')">
+                                    <button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="settings-empty-state">
+                <i class="bi bi-collection"></i>
+                <h5>No categories yet</h5>
+                <p>Add a category above or reset defaults to load sample data.</p>
+            </div>
+            {% endif %}
+        </section>
+    </div>
+
+    <aside class="settings-preview card">
+        <div class="settings-preview-head">
+            <h6 class="mb-0"><i class="bi bi-eye me-2"></i>Live Preview</h6>
+        </div>
+        <div class="settings-preview-body">
+            <div class="settings-preview-block">
+                <span class="settings-preview-label">Borrowing</span>
+                <p class="settings-preview-value" id="liveBorrowText">{{ settings_map.get('max_books_standard', '3') }} books · {{ settings_map.get('loan_period_days', '14') }} days · ₹{{ settings_map.get('fine_per_day', '2') }}/day fine</p>
+            </div>
+            <div class="settings-preview-block">
+                <span class="settings-preview-label">Renewals</span>
+                <p class="settings-preview-value" id="liveRenewText">{{ settings_map.get('max_renewals', '2') }} times · +{{ settings_map.get('renewal_days', '7') }} days each</p>
+            </div>
+            <div class="settings-preview-block">
+                <span class="settings-preview-label">Member types</span>
+                <div class="settings-preview-chips">
+                    <span class="settings-chip">Standard <strong id="liveStandard">{{ settings_map.get('max_books_standard', '3') }}</strong></span>
+                    <span class="settings-chip">Premium <strong id="livePremium">{{ settings_map.get('max_books_premium', '5') }}</strong></span>
+                    <span class="settings-chip">Student <strong id="liveStudent">{{ settings_map.get('max_books_student', '2') }}</strong></span>
+                </div>
+            </div>
+            <div class="settings-preview-block">
+                <span class="settings-preview-label">Alerts & Portal</span>
+                <p class="settings-preview-value" id="liveAlertText">SMS {% if settings_map.get('sms_enabled', '1') == '1' %}on{% else %}off{% endif %} · Portal link {{ settings_map.get('portal_token_ttl_days', '30') }} days</p>
+            </div>
+            <div class="settings-preview-block mb-0">
+                <span class="settings-preview-label">RFID</span>
+                <p class="settings-preview-value mb-0 text-uppercase" id="liveRfid">{{ settings_map.get('rfid_mode', 'hid') }} mode</p>
+            </div>
+        </div>
+    </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var nav = document.getElementById('settingsNav');
+    var sections = document.querySelectorAll('.settings-section');
+    var form = document.getElementById('settingsForm');
+    var dirtyBadge = document.getElementById('settingsDirtyBadge');
+    var stickyLabel = document.getElementById('settingsStickyLabel');
+    var initial = {};
+
+    form.querySelectorAll('.setting-input').forEach(function (el) {
+        initial[el.name || el.id] = el.type === 'checkbox' ? el.checked : el.value;
+    });
+
+    function showSection(id) {
+        nav.querySelectorAll('.settings-nav-btn').forEach(function (btn) {
+            btn.classList.toggle('active', btn.dataset.section === id);
+        });
+        sections.forEach(function (section) {
+            section.classList.toggle('d-none', section.dataset.section !== id);
+        });
+        var sticky = document.getElementById('settingsStickySave');
+        if (sticky) sticky.classList.toggle('d-none', id === 'categories');
+        sessionStorage.setItem('settingsSection', id);
+    }
+
+    nav.addEventListener('click', function (e) {
+        var btn = e.target.closest('.settings-nav-btn');
+        if (btn) showSection(btn.dataset.section);
+    });
+
+    var saved = sessionStorage.getItem('settingsSection');
+    if (saved && document.querySelector('[data-section="' + saved + '"]')) {
+        showSection(saved);
+    }
+
+    function val(key) {
+        var el = form.querySelector('[name="' + key + '"]');
+        if (!el) return '';
+        return el.type === 'checkbox' ? (el.checked ? '1' : '0') : el.value;
+    }
+
+    function updatePreview() {
+        var loan = val('loan_period_days') || '14';
+        var fine = val('fine_per_day') || '2';
+        var renewals = val('max_renewals') || '2';
+        var renewDays = val('renewal_days') || '7';
+        var standard = val('max_books_standard') || '3';
+        var premium = val('max_books_premium') || '5';
+        var student = val('max_books_student') || '2';
+        var smsOn = val('sms_enabled') === '1';
+        var portalDays = val('portal_token_ttl_days') || '30';
+        var rfid = val('rfid_mode') || 'hid';
+
+        document.getElementById('previewLoan').textContent = loan;
+        document.getElementById('previewFine').textContent = '₹' + fine;
+        document.getElementById('previewSms').textContent = smsOn ? 'Active' : 'Off';
+        document.getElementById('liveBorrowText').textContent = standard + ' books · ' + loan + ' days · ₹' + fine + '/day fine';
+        document.getElementById('liveRenewText').textContent = renewals + ' times · +' + renewDays + ' days each';
+        document.getElementById('liveStandard').textContent = standard;
+        document.getElementById('livePremium').textContent = premium;
+        document.getElementById('liveStudent').textContent = student;
+        document.getElementById('liveAlertText').textContent = 'SMS ' + (smsOn ? 'on' : 'off') + ' · Portal link ' + portalDays + ' days';
+        document.getElementById('liveRfid').textContent = rfid + ' mode';
+
+        var smsCard = document.getElementById('smsFeatureCard');
+        if (smsCard) {
+            smsCard.classList.toggle('is-on', smsOn);
+            smsCard.classList.toggle('is-off', !smsOn);
+        }
+    }
+
+    function checkDirty() {
+        var dirty = false;
+        form.querySelectorAll('.setting-input').forEach(function (el) {
+            var key = el.name || el.id;
+            var current = el.type === 'checkbox' ? el.checked : el.value;
+            if (String(current) !== String(initial[key])) dirty = true;
+        });
+        dirtyBadge.hidden = !dirty;
+        stickyLabel.textContent = dirty ? 'You have unsaved changes' : 'Review your changes and save';
+        document.getElementById('settingsStickySave').classList.toggle('is-dirty', dirty);
+    }
+
+    form.addEventListener('input', function () { updatePreview(); checkDirty(); });
+    form.addEventListener('change', function () { updatePreview(); checkDirty(); });
+    updatePreview();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Activity Log{% endblock %}
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-clock-history me-2"></i>Activity Log</h2>
+<div class="card"><div class="card-body"><table class="table table-striped datatable">
+<thead><tr><th>Time</th><th>Action</th><th>Type</th><th>Description</th><th>By</th></tr></thead>
+<tbody>{% for log in logs %}<tr>
+    <td>{{ log.created_at.strftime('%d-%m-%Y %H:%M') }}</td>
+    <td><span class="badge bg-info">{{ log.action }}</span></td>
+    <td>{{ log.entity_type }}{% if log.entity_id %} #{{ log.entity_id }}{% endif %}</td>
+    <td>{{ log.description }}</td><td>{{ log.user_label }}</td>
+</tr>{% else %}<tr><td colspan="5" class="text-center text-muted">No activity yet</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}
+{% block scripts %}<script>$(document).ready(function(){ $('.datatable').DataTable({ order: [[0,'desc']] }); });</script>{% endblock %}
